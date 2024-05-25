@@ -22,7 +22,7 @@
       } else {
         res.text().then((data) => {
           localStorage.setItem('authToken', data);
-          router.push('/admin');
+          router.push('/admin/users');
         });
       }
     })
@@ -55,6 +55,7 @@
 h1 {
   margin-bottom: 1rem;
   font-size: 3rem;
+  word-break:keep-all;
 }
 
 label {

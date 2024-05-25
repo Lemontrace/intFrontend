@@ -72,7 +72,7 @@ nav a:first-of-type {
 <style>
 .basic-button {
   padding: 1rem 2rem;
-  background-color: var(--color-secondary);
+  background-color: var(--color-primary);
   color: white;
   border: none;
   border-radius: 0.25rem;

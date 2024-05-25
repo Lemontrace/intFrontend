@@ -68,14 +68,13 @@ function addProduct() {
 }
 
 function onProductActivenessChange(event, id) {
-    return fetch('/api/product/', {
+    return fetch('/api/product/' + id, {
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer ' + localStorage.getItem('authToken')
         },
         body: JSON.stringify({
-            id: id,
             is_active: event.target.checked
         })
     }).then(async (res) => {

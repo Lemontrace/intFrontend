@@ -8,11 +8,11 @@ const router = createRouter({
         { path: 'users', component: () => import('../components/pages/UsersPage.vue')},
         { path: 'products', component: () => import('../components/pages/ProductsPage.vue')},
         { path: 'categories', component: () => import('../components/pages/CategoriesPage.vue')},
-        // { path: 'sales', component: () => import('../components/pages/SalesPage.vue')},
-        // { path: 'installation', component: () => import('../components/pages/InstallationPage.vue')},
-
+        { path: 'sales', component: () => import('../components/pages/SalesPage.vue')},
+        { path: 'installation', component: () => import('../components/pages/InstallationPage.vue')}
       ]
-    }
+    },
+    { path: '/installationForm/:id', component: () => import('../components/fragments/InstallationForm.vue')}
   ]
 })
 

@@ -25,18 +25,33 @@ function fetchUsers() {
 }
 fetchUsers();
 
-let isAddUserDialogVisible = ref(false);
+let isUserDialogVisible = ref(false);
+let userDialogMode = ref('add');
+let editUserId = ref('');
 
 let login_id = ref('');
 let name = ref('');
 let password = ref('');
 let password_confirm = ref('');
 
-function clearAddUserForm() {
+function clearUserForm() {
     login_id.value = '';
     name.value = '';
     password.value = '';
     password_confirm.value = '';
+}
+
+function showUserDialog(mode) {
+    userDialogMode.value = mode;
+    if (mode === 'add') {
+        clearUserForm();
+    } else {
+        let selectedUser = users.value.find((user) => user.id === editUserId.value);
+        login_id.value = selectedUser.login_id;
+        name.value = selectedUser.name;
+        password.value = password_confirm.value = '';
+    }
+    isUserDialogVisible.value = true;
 }
 
 function addUser() {
@@ -57,7 +72,7 @@ function addUser() {
             password: password.value,
         }),
     }).then(async (res) => {
-        isAddUserDialogVisible.value = false;
+        isUserDialogVisible.value = false;
         if (!res.ok) {
             if (res.status === 401) {
                 alert('로그인이 필요합니다.');
@@ -71,20 +86,55 @@ function addUser() {
     });
 }
 
-function onUserAddClick() {
+function editUser() {
+    if (password.value !== password_confirm.value) {
+        alert('비밀번호가 일치하지 않습니다.');
+        return;
+    }
+    fetch('/api/user/' + editUserId.value, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + localStorage.getItem('authToken'),
+        },
+        body: JSON.stringify({
+            login_id: login_id.value,
+            name: name.value,
+            password: password.value,
+        }),
+    }).then(async (res) => {
+        isUserDialogVisible.value = false;
+        if (!res.ok) {
+            if (res.status === 401) {
+                alert('로그인이 필요합니다.');
+                router.push('/');
+            }
+            alert('사용자 수정에 실패했습니다.\nReason : ' + await res.text());
+        } else {
+            alert('사용자 수정에 성공했습니다.');
+            fetchUsers();
+        }
+    });
+}
+
+function onUserFormSubmit() {
     let isValid = document.getElementById('add-user-form').checkValidity();
     if (!isValid) {
         alert('입력값을 확인해주세요.');
         return;
     }
-    addUser();
+    if (userDialogMode === 'add')
+        addUser();
+    else
+        editUser();
 }
+
 </script>
 
 <template>
     <div style="display: flex;align-items: center;">
         <h1>사용자 관리</h1>
-        <button @click="clearAddUserForm();isAddUserDialogVisible=true" class="basic-button" id="add-user">사용자 추가</button>
+        <button @click="showUserDialog('add')" class="basic-button" id="add-user">사용자 추가</button>
     </div>
     <table>
         <thead>
@@ -92,7 +142,7 @@ function onUserAddClick() {
                 <th>아이디</th>
                 <th>이름</th>
                 <th>권한</th>
-                <th>비밀번호 재설정</th>
+                <th>수정</th>
             </tr>
         </thead>
         <tbody>
@@ -100,12 +150,12 @@ function onUserAddClick() {
                 <td>{{ user.login_id }}</td>
                 <td>{{ user.name }}</td>
                 <td>{{ user.is_admin ? "관리자" : "유저" }}</td>
-                <td><button class="basic-button reset-password">비밀번호 재설정</button></td>
+                <td><button @click="editUserId = user.id;showUserDialog('edit')" class="basic-button reset-password">수정</button></td>
             </tr>
         </tbody>
     </table>
 
-    <Dialog v-model:visible="isAddUserDialogVisible" style="width: 25rem;">
+    <Dialog v-model:visible="isUserDialogVisible" style="width: 25rem;">
         <template #header>
             <h2 style="text-align: center;width: 100%;">사용자 추가</h2>
         </template>
@@ -120,15 +170,16 @@ function onUserAddClick() {
             </div>
             <div>
                 <label for="password">비밀번호</label>
-                <input v-model="password" type="password" id="password" name="password" required/>
+                <input :placeholder="userDialogMode === 'add' ? '' : '(변경 안함)'" v-model="password"
+                type="password" id="password" name="password" :required="userDialogMode === 'add'"/>
             </div>
             <div>
                 <label for="password_confirm">비밀번호 확인</label>
-                <input v-model="password_confirm" type="password" id="password_confirm" name="password_confirm" required/>
+                <input v-model="password_confirm" type="password" id="password_confirm" name="password_confirm" :required="userDialogMode === 'add'"/>
             </div>
         </form>
         <template #footer>
-            <button @click="onUserAddClick()" class="basic-button">추가</button>
+            <button @click="onUserFormSubmit()" class="basic-button">{{userDialogMode === 'add' ? '추가' : '수정'}}</button>
         </template>
     </Dialog>
 </template>
