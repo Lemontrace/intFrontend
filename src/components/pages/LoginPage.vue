@@ -36,7 +36,7 @@
 <template>
   <div class="center">
     <h1>관리자 로그인</h1>
-    <div>
+    <div v-on:keyup.enter="login">
         <div>
           <label for="userid">아이디</label>
           <input v-model="userId" type="text" id="userid" name="userid" />

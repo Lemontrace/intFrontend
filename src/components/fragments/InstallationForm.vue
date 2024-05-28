@@ -2,14 +2,12 @@
 
 import { ref } from 'vue';
 import router from '@/router';
-import { useRoute } from 'vue-router';
 
-const route = useRoute();
-
+const props = defineProps(['id']);
 
 const sale = ref({});
 
-fetch(`/api/sale/${route.params.id}`, {
+fetch(`/api/sale/${props.id}`, {
     method: 'GET',
     headers: {
         'Authorization': 'Bearer ' + localStorage.getItem('authToken'),
@@ -25,13 +23,9 @@ fetch(`/api/sale/${route.params.id}`, {
     } else {
         res.json().then((data) => {
             sale.value = data;
-            setTimeout(() => {
-                window.print();
-            }, 1000);
         })
     }
 })
-
 </script>
 
 <template>
@@ -43,7 +37,7 @@ fetch(`/api/sale/${route.params.id}`, {
                     <th>고객명</th>
                     <td>{{ sale.customer_name }}</td>
                     <th>영업처</th>
-                    <td>{{ sale.seller.name }}</td>
+                    <td>{{ sale.seller ? sale.seller.name : "" }}</td>
                 </tr>
                 <tr>
                     <th>전화번호</th>
@@ -57,7 +51,7 @@ fetch(`/api/sale/${route.params.id}`, {
                 </tr>
             </table>
             <table id="table2">
-                <tr v-for="product_sale in sale.product_sales">
+                <tr v-for="product_sale in sale.sold_product">
                     <th style="width: 15%;">품명</th>
                     <td>{{ product_sale.product.name }}</td>
                     <th style="width: 15%;">유형</th>
@@ -67,9 +61,9 @@ fetch(`/api/sale/${route.params.id}`, {
                     <th>금액</th>
                     <td>{{ product_sale.product.retail_price }}</td>
                 </tr>
-                <tr style="height: 10vh;">
-                    <th>메모</th>
-                    <td colspan="7">{{ sale.memo }}</td>
+                <tr style="height: auto;">
+                    <th style="height: auto;">메모</th>
+                    <td style="height: auto;" colspan="7">{{ sale.memo }}</td>
                 </tr>
             </table>
             <div class="desc-wrap">
@@ -130,7 +124,6 @@ table {
     width: 100%;
     border: none;
     border-collapse: collapse;
-    flex: 0 1 auto;
 }
 
 #table1 {
@@ -147,6 +140,9 @@ table {
 
 #table2 {
     height: 40%;
+    td,tr,th {
+        height: 10%;
+    }
 }
 
 tr,

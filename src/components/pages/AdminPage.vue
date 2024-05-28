@@ -2,7 +2,7 @@
 </script>
 
 <template>
-    <div style="display: flex; width: 100%; height: 100%;">
+    <div style="position:fixed;display: flex; width: 100%; height: 100%;">
         <div class="sidebar">
                 <router-link to="/admin/users">사용자 관리</router-link>
                 <router-link to="/admin/products">제품 관리</router-link>

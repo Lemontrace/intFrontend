@@ -4,7 +4,13 @@ import Dialog from 'primevue/dialog';
 
 let products = ref([]);
 function fetchProducts() {
-    fetch('/api/product').then(async (res) => {
+    fetch('/api/product',{
+        method: 'GET',
+        headers: {
+            'Authorization': 'Bearer ' + localStorage.getItem('authToken'),
+        }
+    
+    }).then(async (res) => {
         if (!res.ok) {
             alert('제품 정보를 가져오는데 실패했습니다.\nReason : ' + await res.text());
         } else {
@@ -16,6 +22,26 @@ function fetchProducts() {
 }
 
 fetchProducts();
+
+let categories = ref([]);
+function fetchCategories() {
+    return fetch('/api/category', {
+        method: 'GET',
+        headers: {
+            'Authorization': 'Bearer ' + localStorage.getItem('authToken'),
+        }
+    }).then(async (res) => {
+        if (!res.ok) {
+            alert('카테고리 정보를 가져오는데 실패했습니다.\nReason : ' + await res.text());
+        } else {
+            res.json().then((data) => {
+                categories.value = data;
+            });
+        }
+    });
+}
+
+fetchCategories();
 
 let isAddProductDialogVisible = ref(false);
 
@@ -48,9 +74,9 @@ function addProduct() {
         },
         body: JSON.stringify({
             name: name.value,
-            retail_price: retail_price.value,
+            retail_price: parseInt(retail_price.value),
             sales_commission: parseInt(sales_commission.value),
-            category: category.value,
+            category_id: category.value,
             service_type: service_type.value,
             installation_commission: service_type.value === '설치' ? parseInt(installation_commission.value) : null,
             collection_commission: service_type.value === '회수선출' ? parseInt(collection_commission.value) : null,
@@ -110,7 +136,7 @@ function onProductActivenessChange(event, id) {
                 <td>{{ product.name }}</td>
                 <td>{{ product.retail_price }}</td>
                 <td>{{ product.sales_commission }}</td>
-                <td>{{ product.category }}</td>
+                <td>{{ product.category.name }}</td>
                 <td>{{ product.service_type }}</td>
                 <td>{{ product.installation_commission }}</td>
                 <td>{{ product.collection_commission }}</td>
@@ -132,10 +158,8 @@ function onProductActivenessChange(event, id) {
             <label for="sales_commission">영업수당</label>
             <input v-model="sales_commission" type="text" pattern="[0-9]+" id="sales_commission" name="sales_commission" required>
             <label for="category">분류</label>
-            <select v-model="category" id="category" required   >
-                <option value="환풍기">환풍기</option>
-                <option value="전열교환기">전열교환기</option>
-                <option value="후드">후드</option>
+            <select v-model="category" id="category" required>
+                <option v-for="category in categories" :value="category.id">{{ category.name }}</option>
             </select>
             <label for="service_type">설치 분류</label>
             <select v-model="service_type" id="service_type" required>

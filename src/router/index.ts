@@ -12,7 +12,7 @@ const router = createRouter({
         { path: 'installation', component: () => import('../components/pages/InstallationPage.vue')}
       ]
     },
-    { path: '/installationForm/:id', component: () => import('../components/fragments/InstallationForm.vue')}
+    { path: '/installationFormMultiPage', component: () => import('../components/pages/InstallationFormMultiPage.vue')},
   ]
 })
 
