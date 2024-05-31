@@ -34,59 +34,89 @@ fetch(`/api/sale/${props.id}`, {
         <div class="inner">
             <table id="table1">
                 <tr>
-                    <th>고객명</th>
+                    <td>고객명</td>
                     <td>{{ sale.customer_name }}</td>
-                    <th>영업처</th>
+                    <td>고객번호</td>
+                    <td>{{ sale.display_id }}</td>
+                    <td>사원명</td>
                     <td>{{ sale.seller ? sale.seller.name : "" }}</td>
                 </tr>
                 <tr>
-                    <th>전화번호</th>
+                    <td>전화번호</td>
                     <td>{{ sale.customer_phone }}</td>
-                    <th>고객번호</th>
-                    <td>{{ sale.display_id }}</td>
-                </tr>
-                <tr>
-                    <th>주소</th>
+                    <td>주소</td>
                     <td colspan="3">{{ sale.customer_address }}</td>
                 </tr>
+                <tr>
+                    <td>메모</td>
+                    <td colspan="5">{{ sale.memo }}</td>
+                </tr>
+
             </table>
             <table id="table2">
-                <tr v-for="product_sale in sale.sold_product">
-                    <th style="width: 15%;">품명</th>
-                    <td>{{ product_sale.product.name }}</td>
-                    <th style="width: 15%;">유형</th>
-                    <td>{{ product_sale.installation_type }}</td>
-                    <th>수량</th>
-                    <td>{{ product_sale.count }}</td>
-                    <th>금액</th>
-                    <td>{{ product_sale.product.retail_price }}</td>
+                <thead>
+                    <tr>
+                        <th>품명</th>
+                        <th>유형</th>
+                        <th>수량</th>
+                        <th>금액</th>
+                        <th>처리결과</th>
+                        <th>결제유형</th>
+                        <th>비고</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="product_sale in (sale.sold_product ?? []).filter((product) => !product.is_complete)">
+                        <td>{{ product_sale.product.name }}</td>
+                        <td>{{ product_sale.installation_type.name }}</td>
+                        <td>{{ product_sale.count }}</td>
+                        <td>{{ product_sale.total_amount }}</td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                </tbody>
+            </table>
+            <table id="table3" v-if="sale.measurement?.length ?? 0 > 0">
+                <tr v-for="i in Math.floor(sale.measurement.length / 3) + 1">
+                    <template v-for="j in 3">
+                        <template v-if="sale.measurement[(i - 1) * 3 + j - 1]">
+                            <td width="16.66%">{{ sale.measurement[(i - 1) * 3 + j - 1].measurement_type.name }}</td>
+                            <td width="16.66%">{{ sale.measurement[(i - 1) * 3 + j - 1].width + 'x' + sale.measurement[(i - 1) * 3 +
+                                j - 1].height + 'x' + sale.measurement[(i - 1) * 3 + j - 1].thickness }}</td>
+                        </template>
+                        <template v-else>
+                            <td width="33.33%"></td>
+                        </template>
+                    </template>
                 </tr>
-                <tr style="height: auto;">
-                    <th style="height: auto;">메모</th>
-                    <td style="height: auto;" colspan="7">{{ sale.memo }}</td>
+            </table>
+            <table id="table4" :style="(sale.measurement?.length ?? 0 > 0) ? {height: '10%'} : {height: '20%'}">
+                <tr>
+                    <td style="width: 128px;">메모</td>
+                    <td>{{ sale.memo }}</td>
                 </tr>
             </table>
             <div class="desc-wrap">
                 <div class="desc">
-                    상기 제품을 설치 및 케어 서비스 완료하였음을 <br>
-                    확인하여 주시기 바랍니다. <br>
-                    상기 제품의 배송/케어 서비스 완료 후 <br>
-                    이상 없음을 확인합니다. <br>
-                    제품을 꼭 확인 후 서명 해 주세요. <br>
+                    1. 설치/배송/케어 서비스 완료 후 이상 없음을 확인해주세요. <br>
+                    2. 새 상품의 무상 A/S 기간은 1년 입니다.<br>
+                    3. 리퍼/케어 상품의 무상 A/S 기간은 1개월 입니다.<br>
+                    4. 제품 및 A/S 내용을 꼭 확인 후 서명해주세요.
                 </div>
                 <div style="text-align: center; margin-bottom: 10px;">
-                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;년
+                    20&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;년
                     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;월
                     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;일
                 </div>
                 <div style="text-align: right; margin-bottom: 10px;">
+                    <span>설치기사</span>
+                    <span
+                        class="underlined">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
                     <span>고객명</span>
                     <span
                         class="underlined">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
 
-                    <span>설치기사</span>
-                    <span
-                        class="underlined">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
                 </div>
             </div>
         </div>
@@ -127,21 +157,23 @@ table {
 }
 
 #table1 {
-    height: 20%;
-
-    th {
-        width: 15%;
-    }
-
-    td {
-        width: 35%;
-    }
+    height: 10%;
 }
 
 #table2 {
-    height: 40%;
-    td,tr,th {
-        height: 10%;
+    height: 35%;
+
+    td,
+    tr,
+    th {
+        height: 16px
+    }
+}
+
+#table3 {
+    height: 10%;
+    tr,td {
+        height: 16px;
     }
 }
 
@@ -158,7 +190,7 @@ td {
     align-content: center;
     border: 1px solid #000;
     width: 100%;
-    height: 40%;
+    height: 35%;
 }
 
 .desc {
