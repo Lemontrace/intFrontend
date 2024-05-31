@@ -4,7 +4,7 @@ import InstallationForm from '@/components/fragments/InstallationForm.vue';
 
 const route = useRoute();
 
-const saleIds = route.query.id
+const saleIds = Array.isArray(route.query.id) ? route.query.id : [route.query.id];
 console.log(saleIds);
 function print() {
     window.print();

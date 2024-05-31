@@ -10,7 +10,6 @@ import { RouterView } from 'vue-router';
 </template>
 
 <style scoped>
-
 .logo {
   display: block;
   margin: 0 auto 2rem;
@@ -79,6 +78,25 @@ nav a:first-of-type {
   cursor: pointer;
   height: fit-content;
   width: fit-content;
+}
+
+.small-button {
+  padding: 10px;
+  border: none;
+  border-radius: 0.25rem;
+  background-color: var(--color-primary);
+  color: white;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  height: 12%;
+}
+
+.page-content {
+  height: 88%;
+  overflow-y: auto;
 }
 
 :root {

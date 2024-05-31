@@ -101,7 +101,7 @@ function setCatoryElementActiveness(elementType, elementId, isActive) {
     let url = elementType === 1 ? '/api/install_location/' : '/api/measurement_type/';
 
     fetch(url + elementId, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: {
             'Authorization': 'Bearer ' + localStorage.getItem('authToken'),
             'Content-Type': 'application/json',
@@ -230,14 +230,6 @@ h2 {
 .category {
     margin-bottom: 1rem;
     border: 1px solid #ddd;
-}
-
-.small-button {
-    padding: 10px;
-    border: none;
-    border-radius: 0.25rem;
-    background-color: var(--color-primary);
-    color: white;
 }
 
 input,select {
