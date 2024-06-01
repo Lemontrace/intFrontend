@@ -241,6 +241,7 @@ function excelDownload() {
                     <th>영업메모</th>
                     <th>설치자</th>
                     <th>설치상태</th>
+                    <th>보류/취소사유</th>
                     <th>설치유형</th>
                     <th>설치완료일</th>
                     <th>결제유형</th>
@@ -269,6 +270,7 @@ function excelDownload() {
                     <td>{{ installed_product.sold_product.sale.memo }}</td>
                     <td>{{ installed_product.installation.installer.name }}</td>
                     <td>{{ installed_product.status }}</td>
+                    <td>{{ installed_product.status_reason }}</td>
                     <td>{{ installed_product.sold_product.installation_type.name }}</td>
                     <td>{{ installed_product.installation.date.split('T')[0] }}</td>
                     <td>{{ installed_product.payment_type }}</td>

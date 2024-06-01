@@ -75,26 +75,25 @@ fetch(`/api/sale/${props.id}`, {
                         <td></td>
                         <td></td>
                     </tr>
+                    <tr style="height: auto;"></tr>
                 </tbody>
             </table>
             <table id="table3" v-if="sale.measurement?.length ?? 0 > 0">
-                <tr v-for="i in Math.floor(sale.measurement.length / 3) + 1">
+                <tr v-for="i in Math.floor((sale.measurement.length - 1) / 3) + 1">
                     <template v-for="j in 3">
                         <template v-if="sale.measurement[(i - 1) * 3 + j - 1]">
                             <td width="16.66%">{{ sale.measurement[(i - 1) * 3 + j - 1].measurement_type.name }}</td>
-                            <td width="16.66%">{{ sale.measurement[(i - 1) * 3 + j - 1].width + 'x' + sale.measurement[(i - 1) * 3 +
-                                j - 1].height + 'x' + sale.measurement[(i - 1) * 3 + j - 1].thickness }}</td>
-                        </template>
-                        <template v-else>
-                            <td width="33.33%"></td>
+                            <td width="16.66%">{{ sale.measurement[(i - 1) * 3 + j - 1].width + 'x' +
+                                sale.measurement[(i - 1) * 3 +
+                                    j - 1].height + 'x' + sale.measurement[(i - 1) * 3 + j - 1].thickness }}</td>
                         </template>
                     </template>
                 </tr>
             </table>
-            <table id="table4" :style="(sale.measurement?.length ?? 0 > 0) ? {height: '10%'} : {height: '20%'}">
+            <table id="table4">
                 <tr>
-                    <td style="width: 128px;">메모</td>
-                    <td>{{ sale.memo }}</td>
+                    <td style="width: 25%;">메모</td>
+                    <td></td>
                 </tr>
             </table>
             <div class="desc-wrap">
@@ -151,17 +150,19 @@ h1 {
 }
 
 table {
-    width: 100%;
-    border: none;
     border-collapse: collapse;
 }
 
 #table1 {
-    height: 10%;
+
+    tr,
+    td {
+        height: 16px;
+    }
 }
 
 #table2 {
-    height: 35%;
+    flex-grow: 1;
 
     td,
     tr,
@@ -171,19 +172,29 @@ table {
 }
 
 #table3 {
-    height: 10%;
-    tr,td {
+    tr,
+    td {
         height: 16px;
+    }
+}
+
+#table4 {
+    tr,
+    td {
+        height: 64px;
     }
 }
 
 tr,
 th,
 td {
-    border: 1px solid #000;
     text-align: center;
     font-size: 1rem;
-    height: auto;
+}
+
+table, td, th {
+    border-collapse: collapse;
+    border: 1px solid #000;
 }
 
 .desc-wrap {
