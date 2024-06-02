@@ -30,8 +30,8 @@ function fetchInstalledProducts() {
         } else {
             res.json().then((data) => {
                 installed_products.value = data.sort((a, b) => a.id - b.id)
-                    .sort((a, b) => b.display_id - a.display_id)
-                    .sort((a, b) => a.status === '완료' ? -1 : 1);
+                    .sort((a, b) => a.status === '완료' ? -1 : 1)
+                    .sort((a, b) => b.display_id - a.display_id);
                 installed_products.value.forEach((installed_product) => {
                     const installType = installed_product.sold_product.installation_type
                     if (installed_product.status !== '완료') {

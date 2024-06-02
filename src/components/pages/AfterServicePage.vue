@@ -74,13 +74,13 @@ function addServiceProduct(category_id) {
             after_service_type_id: editState[category_id].after_service_type_id,
             commission: parseInt(editState[category_id].commission)
         })
-    }).then(response => {
+    }).then(async response => {
         if (response.ok) {
             fetchAfterServiceProducts();
             editState[category_id].after_service_type_id = null;
             editState[category_id].commission = null;
         } else {
-            alert('A/S 제품 추가에 실패했습니다.\nReason : ' + response.text());
+            alert('A/S 제품 추가에 실패했습니다.\nReason : ' + await response.text());
         }
     });
 }
@@ -92,11 +92,11 @@ function deleteAfterServiceProduct(id) {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer ' + localStorage.getItem('authToken')
         }
-    }).then(response => {
+    }).then(async response => {
         if (response.ok) {
             fetchAfterServiceProducts();
         } else {
-            alert('A/S 제품 삭제에 실패했습니다.\nReason : ' + response.text());
+            alert('A/S 제품 삭제에 실패했습니다.\nReason : ' + await response.text());
         }
     });
 }
@@ -135,8 +135,8 @@ function addAfterServiceType() {
 
     <div v-for="category in categories" style="padding: 16px;">
         <h2>{{ category.name }}</h2>
-        <div style="padding-left: 16px;">
-            <table style="border: 1px solid #ddd; width: 80%;">
+        <div style="padding: 16px; width: 100%;">
+            <table style="border: 1px solid #ddd;width: 100%;">
                 <tr>
                     <th>A/S유형</th>
                     <th>A/S수당</th>

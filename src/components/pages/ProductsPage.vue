@@ -350,24 +350,17 @@ function deleteInstallataionCommission(id) {
         <table>
             <thead>
                 <th>이름</th>
-                <th>AS 여부</th>
-                <th>무상 여부</th>
                 <th>삭제/저장</th>
             </thead>
             <tbody>
                 <tr v-for="installationType in installationTypes" :key="installationType.id">
                     <td>{{ installationType.name }}</td>
-                    <td><input type="checkbox" :checked="installationType.is_afterservice" disabled></td>
-                    <td><input type="checkbox" :checked="installationType.is_free_for_customer" disabled></td>
                     <td>
                         <button class="small-button" @click="deleteInstallationType(installationType.id)">삭제</button>
                     </td>
                 </tr>
                 <tr>
                     <td><input type="text" v-model="installationTypeName" id="installation-type-name" required></td>
-                    <td><input type="checkbox" v-model="installationTypeIsAfterservice"></td>
-                    <td><input type="checkbox" v-model="installationTypeIsFreeForCustomer"
-                            :disabled="!installationTypeIsAfterservice"></td>
                     <td><button class="small-button" @click="addInstallationType">저장</button></td>
                 </tr>
             </tbody>
