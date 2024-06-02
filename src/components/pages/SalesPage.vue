@@ -81,10 +81,15 @@ function onDisplayInstallationForm(saleIdArray) {
                 <td>{{ sale.sold_product.reduce((memo, product_sale) => memo + product_sale.total_amount, 0) }}</td>
                 <td>{{ sale.sold_product.reduce((memo, product_sale) => memo + product_sale.count, 0) }}</td>
                 <td>{{
-                    sale.is_afterservice ? 0 :
-                    sale.sold_product.reduce((memo, product_sale) => memo +
-                        (product_sale.count * product_sale.product.sales_commission * sale.seller.user_rank.commission_rate -
-                            (product_sale.product.retail_price * product_sale.count - product_sale.total_amount)), 0)
+                    sale.sold_product.reduce((memo, product_sale) => {
+                        let commissionType = product_sale.product.sale_commission.find(
+                                (sc) => sc.is_active && sc.installation_type_id === product_sale.installation_type.id)
+                        
+                        let deduction = product_sale.product.retail_price * product_sale.count - product_sale.total_amount
+
+                        return memo + product_sale.count * commissionType.amount * sale.seller.user_rank.commission_rate - deduction
+                    }, 0)
+
                 }}</td>
                 <td>{{ sale.is_afterservice ? 'A/S' : sale.is_new ? '신규' : sale.is_complete ? '완료됨' : '보류됨' }}</td>
                 <td><button class="small-button" @click="onDeleteSale(sale.id)">삭제</button></td>

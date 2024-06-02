@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { reactive, ref } from 'vue';
 import Dialog from 'primevue/dialog';
 import VueDatePicker from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css'
@@ -10,6 +10,28 @@ import { saveAs } from 'file-saver';
 const datepicker = ref();
 
 const date = ref("");
+
+const filter = reactive({
+    seller: null,
+    installer: null,
+    sale_start_date: null,
+    sale_end_date: null,
+    install_start_date: null,
+    install_end_date: null,
+    only_completed: false,
+})
+
+function filterInstalledProduct(installedProduct) {
+    if (filter.seller && installedProduct.sold_product.sale.seller.name !== filter.seller) return false;
+    if (filter.installer && installedProduct.installation.installer.name !== filter.installer) return false;
+    if (filter.sale_start_date && installedProduct.sold_product.sale.date < filter.sale_start_date) return false;
+    if (filter.sale_end_date && installedProduct.sold_product.sale.date > filter.sale_end_date) return false;
+    if (filter.install_start_date && installedProduct.installation.date < filter.install_start_date) return false;
+    if (filter.install_end_date && installedProduct.installation.date > filter.install_end_date) return false;
+    if (filter.only_completed && installedProduct.status !== '완료') return false;
+    return true;
+
+}
 
 const installed_products = ref([]);
 const sale_commission_edit_state = ref([]);
@@ -33,32 +55,39 @@ function fetchInstalledProducts() {
                     .sort((a, b) => a.status === '완료' ? -1 : 1)
                     .sort((a, b) => b.display_id - a.display_id);
                 installed_products.value.forEach((installed_product) => {
-                    const installType = installed_product.sold_product.installation_type
                     if (installed_product.status !== '완료') {
                         installed_product.payment_amount = 0;
                         installed_product.sale_commission = 0;
                         installed_product.installation_commission = 0;
                     } else {
-                        if (installed_product.sold_product.commission_override) installed_product.sale_commission = installed_product.sold_product.commission_override
+                        if (installed_product.sold_product.commission_override != null) installed_product.sale_commission = installed_product.sold_product.commission_override
                         else {
-                            const originalSaleCommission = installed_product.sold_product.product.sales_commission * installed_product.sold_product.sale.seller_rank.commission_rate
+                            const installType = installed_product.sold_product.installation_type
+                            const commissionType = installed_product.sold_product.product.sale_commission
+                                .find(
+                                    (sc) => sc.installation_type_id === installType.id
+                                )
+                            const originalSaleCommission =  commissionType.amount * installed_product.sold_product.sale.seller_rank.commission_rate
                             const saleCommissionDeduction = installed_product.sold_product.product.retail_price * installed_product.sold_product.count - installed_product.sold_product.total_amount;
                             installed_product.sale_commission = originalSaleCommission - saleCommissionDeduction;
                         }
 
-                        if (installed_product.commission_override) installed_product.installation_commission = installed_product.commission_override
+                        if (installed_product.commission_override != null) installed_product.installation_commission = installed_product.commission_override
                         else {
+                            const installType = installed_product.sold_product.installation_type
                             const commissionType = installed_product.sold_product.product.installation_commission
                                 .find(
                                     (ic) => ic.installation_type_id === installType.id
                                 )
-                            const originalInstallationCommission = commissionType.amount * installed_product.installation.installer_rank.commission_rate;
+                            const originalInstallationCommission = commissionType ?
+                                commissionType.amount * installed_product.installation.installer_rank.commission_rate
+                                : -1;
                             const installationCommissionDeduction = installed_product.sold_product.total_amount - installed_product.payment_amount
                             installed_product.installation_commission = originalInstallationCommission - installationCommissionDeduction;
                         }
                     }
 
-                    installed_product.pure_profit = installed_product.profit - installed_product.sale_commission - installed_product.installation_commission;
+                    installed_product.pure_profit = installed_product.sold_product.product.company_profit - installed_product.sale_commission - installed_product.installation_commission;
                 });
                 if (firstLoad.value) {
                     firstLoad.value = false;
@@ -162,6 +191,8 @@ function onDeleteInstallation(id) {
     });
 }
 
+let isFilterDialogVisible = ref(false);
+
 let onPickFunction
 function openDatePicker(onPick) {
     datepicker.value.openMenu();
@@ -202,7 +233,7 @@ const excelCommonRows2 = [
 
 const excelAdminRows = [
     { name: '회사입금일', get: (installed_product) => installed_product.payment_arrival_date?.split('T')[0] ?? '' },
-    { name: '회사이익', get: (installed_product) => installed_product.profit },
+    { name: '회사이익', get: (installed_product) => installed_product.sold_product.product.company_profit },
     { name: '순이익', get: (installed_product) => installed_product.pure_profit }
 ]
 
@@ -224,7 +255,7 @@ function excelDownload(type) {
     const headers = ['순번'].concat(rows.map((row) => row.name));
 
     worksheet.addRow(headers);
-    installed_products.value.forEach((installed_product, index) => {
+    installed_products.value.filter(filterInstalledProduct).forEach((installed_product, index) => {
         const row = [index + 1];
         rows.forEach((r) => row.push(r.get(installed_product)));
         worksheet.addRow(row);
@@ -240,8 +271,11 @@ function excelDownload(type) {
 <template>
     <div class="page-header">
         <h1>설치 목록</h1>
-        <button @click="isExcelDownloadDialogVisible = true" class="basic-button"
-            style="position: absolute;right: 2%;">엑셀 다운로드</button>
+        <div style="position: absolute;display: flex;right: 2%;gap: 16px;">
+            <button @click="isFilterDialogVisible = true" class="basic-button">필터</button>
+            <button @click="isExcelDownloadDialogVisible = true" class="basic-button">엑셀 다운로드</button>
+
+        </div>
     </div>
     <div class="page-content table-wrapper">
         <table style="table-layout: fixed;">
@@ -276,7 +310,7 @@ function excelDownload(type) {
                 </tr>
             </thead>
             <tbody>
-                <tr v-for="(installed_product, index) in installed_products">
+                <tr v-for="(installed_product, index) in installed_products.filter(filterInstalledProduct)">
                     <td>{{ index + 1 }}</td>
                     <td>{{ installed_product.sold_product.sale.display_id }}</td>
                     <td>{{ installed_product.sold_product.sale.customer_name }}</td>
@@ -361,7 +395,7 @@ function excelDownload(type) {
                                 {{ installed_product.commission_payment_date?.split('T')[0] ?? '선택' }}
                             </button>
                         </td>
-                        <td>{{ installed_product.profit }}</td>
+                        <td>{{ installed_product.sold_product.product.company_profit }}</td>
                         <td>{{ installed_product.pure_profit }}</td>
                     </template>
                     <template v-else>
@@ -402,6 +436,31 @@ function excelDownload(type) {
             <button class="basic-button" @click="excelDownload('설치')">설치자용 다운로드</button>
         </div>
     </Dialog>
+
+    <Dialog v-model:visible="isFilterDialogVisible" style="width: 25rem;">
+        <template #header>
+            <h2 style="text-align: center;width: 100%;">필터</h2>
+        </template>
+        <div>
+            <label for="seller">영업자 : &#32;</label>
+            <input type="text" v-model="filter.seller">
+            <label for="installer">설치자 : &#32;</label>
+            <input type="text" v-model="filter.installer">
+            <label for="sale_start_date">영업 시작일 : &#32;</label>
+            <input type="date" v-model="filter.sale_start_date" lang="ko-KR">
+            <label for="sale_end_date">영업 종료일 : &#32;</label>
+            <input type="date" v-model="filter.sale_end_date" lang="ko-KR">
+            <label for="install_start_date">설치 시작일 : &#32;</label>
+            <input type="date" v-model="filter.install_start_date" lang="ko-KR">
+            <label for="install_end_date">설치 종료일 : &#32;</label>
+            <input type="date" v-model="filter.install_end_date" lang="ko-KR">
+            <label for="only_completed">완료된 것만 보기 : &#32;</label>
+            <input type="checkbox" v-model="filter.only_completed">
+        </div>
+        <template #footer>
+            <button class="small-button" @click="isFilterDialogVisible = false">닫기</button>
+        </template>
+    </Dialog>
 </template>
 
 <style scoped>
@@ -432,6 +491,14 @@ th {
 
 div.table-wrapper {
     overflow-x: auto;
+}
+
+
+input[type="text"],input[type="date"] {
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 0.25rem;
+    width: 100%;
 }
 
 input:invalid {

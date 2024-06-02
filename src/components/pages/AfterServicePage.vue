@@ -37,7 +37,7 @@ function fetchAfterServiceProducts() {
         }
     }).then(response => response.json())
         .then(data => {
-            afterServiceProducts.value = data;
+            afterServiceProducts.value = data.filter(product => product.is_active);
         });
 }
 
@@ -129,7 +129,7 @@ function addAfterServiceType() {
     <div style="display: flex;align-items: center;">
         <h1>A/S 관리</h1>
         <div class="button-div">
-            <button @click="" class="basic-button">A/S 유형 추가</button>
+            <button @click="isAfterServiceProductDialogVisible = true" class="basic-button">A/S 유형 추가</button>
         </div>
     </div>
 

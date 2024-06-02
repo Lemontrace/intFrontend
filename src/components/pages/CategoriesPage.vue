@@ -18,7 +18,7 @@ function fetchCategories() {
             alert('카테고리 정보를 가져오는데 실패했습니다.\nReason : ' + await res.text());
         } else {
             res.json().then((data) => {
-                categories.value = data;
+                categories.value = data.sort((a,b)=>b.is_active - a.is_active);
             });
         }
     });
@@ -76,7 +76,7 @@ function addCategoryElement() {
 
     let url = selectedType.value === 1 ? '/api/install_location' : '/api/measurement_type';
 
-    fetch(url , {
+    fetch(url, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -93,6 +93,40 @@ function addCategoryElement() {
             fetchLocations();
             fetchMeasurementTypes();
             isAddLocationDialogVisible.value = false;
+        }
+    });
+}
+
+function deleteCategory(categoryId) {
+    fetch('/api/category/' + categoryId, {
+        method: 'DELETE',
+        headers: {
+            Authorization: 'Bearer ' + localStorage.getItem('authToken'),
+        },
+    }).then(async (res) => {
+        if (!res.ok) {
+            alert('카테고리 삭제에 실패했습니다.\nReason : ' + await res.text());
+        } else {
+            fetchCategories();
+        }
+    });
+}
+
+function unDeleteCategory(categoryId) {
+    fetch('/api/category/' + categoryId, {
+        method: 'PATCH',
+        headers: {
+            'Authorization': 'Bearer ' + localStorage.getItem('authToken'),
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            is_active: true,
+        }),
+    }).then(async (res) => {
+        if (!res.ok) {
+            alert('카테고리 복구에 실패했습니다.\nReason : ' + await res.text());
+        } else {
+            fetchCategories();
         }
     });
 }
@@ -149,33 +183,45 @@ function addCategory() {
 <template>
     <div style="display: flex;align-items: center;">
         <h1>카테고리 관리</h1>
-        <button @click="isAddCategoryDialogVisible = true" class="basic-button" style="position: absolute;right: 2%;">카테고리 추가</button>
+        <button @click="isAddCategoryDialogVisible = true" class="basic-button"
+            style="position: absolute;right: 2%;">카테고리 추가</button>
     </div>
     <div class="content">
-        <div v-for="category in categories">
-            <h2>{{ category.name }}</h2>
-            <div class="category">
-                <button @click="onAddLocationClick(category.id)" class="small-button" style="margin:1rem;">추가</button>
-                <h3 style="margin: 1rem;">
-                    설치 장소 : &#32;
-                </h3>
-                <div v-for="location in locations.filter((location) => location.category_id === category.id)"
-                    :key="location.id" class="location">
-                    <p>{{ location.name + (location.is_active ? '' : '(삭제됨)') }}</p>
-                    <div style="margin:auto"></div>
-                    <button @click="setCatoryElementActiveness(1,location.id, !location.is_active)" class="small-button">{{ location.is_active ? '삭제' : '복구'}}</button>
-                </div>
-                <h3 style="margin: 1rem;">
-                    측정 사이즈 : &#32;
-                </h3>
-                <div v-for="measurement_type in measurementTypes.filter((type) => type.category_id === category.id)"
-                    :key="measurement_type.id" class="location">
-                    <p>{{ measurement_type.name + (measurement_type.is_active ? '' : '(삭제됨)') }}</p>
-                    <div style="margin:auto"></div>
-                    <button @click="setCatoryElementActiveness(2,measurement_type.id,!measurement_type.is_active)" class="small-button">삭제</button>
+        <template v-for="category in categories" :key="category.id">
+            <div>
+                <h2>{{ category.name + (category.is_active ? '' : '(삭제됨)') }}</h2>
+                <div class="category">
+                    <button @click="onAddLocationClick(category.id)" class="small-button" style="margin:1rem;">카테고리 요소
+                        추가</button>
+                    <button @click="category.is_active ? deleteCategory(category.id) : unDeleteCategory(category.id)"
+                        class="small-button">{{ '카테고리 ' + (category.is_active ?
+                            '삭제' : '복구') }}</button>
+                    <template v-if="category.is_active">
+                        <h3 style="margin: 1rem;">
+                            설치 장소 : &#32;
+                        </h3>
+                        <div v-for="location in locations.filter((location) => location.category_id === category.id)"
+                            :key="location.id" class="location">
+                            <p>{{ location.name + (location.is_active ? '' : '(삭제됨)') }}</p>
+                            <div style="margin:auto"></div>
+                            <button @click="setCatoryElementActiveness(1, location.id, !location.is_active)"
+                                class="small-button">{{ location.is_active ? '삭제' : '복구' }}</button>
+                        </div>
+                        <h3 style="margin: 1rem;">
+                            측정 사이즈 : &#32;
+                        </h3>
+                        <div v-for="measurement_type in measurementTypes.filter((type) => type.category_id === category.id)"
+                            :key="measurement_type.id" class="location">
+                            <p>{{ measurement_type.name + (measurement_type.is_active ? '' : '(삭제됨)') }}</p>
+                            <div style="margin:auto"></div>
+                            <button
+                                @click="setCatoryElementActiveness(2, measurement_type.id, !measurement_type.is_active)"
+                                class="small-button">{{ measurement_type.is_active ? '삭제' : '복구' }}</button>
+                        </div>
+                    </template>
                 </div>
             </div>
-        </div>
+        </template>
     </div>
 
     <Dialog header="카테고리 추가" v-model:visible="isAddCategoryDialogVisible" style="width: 25rem;">
@@ -191,7 +237,7 @@ function addCategory() {
 
     <Dialog header="카테고리 요소 추가" v-model:visible="isAddLocationDialogVisible" style="width: 25rem;">
         <div>
-            <p>카테고리 : {{ categories.find((category)=>category.id == selectedCategoryId).name }}</p>
+            <p>카테고리 : {{ categories.find((category) => category.id == selectedCategoryId).name }}</p>
             <label for="type">요소 유형 : </label>
             <select id="type" v-model="selectedType">
                 <option value="1">설치 장소</option>
@@ -232,7 +278,8 @@ h2 {
     border: 1px solid #ddd;
 }
 
-input,select {
+input,
+select {
     padding: 0.5rem;
     border: 1px solid #ddd;
     border-radius: 0.25rem;
@@ -243,7 +290,8 @@ select {
     background-color: white;
 }
 
-input:invalid,select:invalid {
+input:invalid,
+select:invalid {
     border-color: red;
 }
 

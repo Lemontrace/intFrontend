@@ -15,7 +15,8 @@ function fetchProducts() {
             alert('제품 정보를 가져오는데 실패했습니다.\nReason : ' + await res.text());
         } else {
             res.json().then((data) => {
-                products.value = data;
+                products.value = data.filter(p => p.is_active);
+                productForCommissionDialog.value = products.value.find(p => p.id === productForCommissionDialog.value?.id)
             });
         }
     });
@@ -67,18 +68,35 @@ fetchInstallationTypes();
 let isInstallationTypeDialogVisible = ref(false);
 
 let installationTypeName = ref('');
-let installationTypeIsAfterservice = ref(false);
-let installationTypeIsFreeForCustomer = ref(false);
 
-let isAddProductDialogVisible = ref(false);
+let isProductDialogVisible = ref(false);
+let productDialogMode = ref('add');
+let editProductId = ref(null);
 
-function onAddProductClick() {
+function openProductDialog(mode, product = null) {
+    productDialogMode.value = mode;
+    if (mode === 'add') {
+        name.value = '';
+        retail_price.value = '';
+        category.value = '';
+        company_profit.value = '';
+    } else {
+        name.value = product.name;
+        retail_price.value = product.retail_price;
+        category.value = product.category_id;
+        company_profit.value = product.company_profit;
+    }
+    isProductDialogVisible.value = true;
+    editProductId.value = product ? product.id : null;
+}
+
+function validateProductForm() {
     let isValid = document.getElementById('add-product-form').checkValidity();
     if (!isValid) {
         alert('입력값을 확인해주세요.');
-        return;
+        return false;
     }
-    addProduct();
+    return true;
 }
 
 function addInstallationType() {
@@ -93,9 +111,7 @@ function addInstallationType() {
             'Authorization': 'Bearer ' + localStorage.getItem('authToken'),
         },
         body: JSON.stringify({
-            name: installationTypeName.value,
-            is_afterservice: installationTypeIsAfterservice.value,
-            is_free_for_customer: installationTypeIsAfterservice.value ? installationTypeIsFreeForCustomer.value : undefined,
+            name: installationTypeName.value
         }),
     }).then(async (res) => {
         if (!res.ok) {
@@ -103,8 +119,6 @@ function addInstallationType() {
         } else {
             fetchInstallationTypes();
             installationTypeName.value = '';
-            installationTypeIsAfterservice.value = false;
-            installationTypeIsFreeForCustomer.value = false;
         }
     });
 }
@@ -127,12 +141,10 @@ function deleteInstallationType(id) {
 
 
 
-
 let name = ref('');
 let retail_price = ref('');
-let sales_commission = ref('');
 let category = ref('');
-let is_active = ref(false);
+let company_profit = ref('');
 
 
 function addProduct() {
@@ -145,15 +157,36 @@ function addProduct() {
         body: JSON.stringify({
             name: name.value,
             retail_price: parseInt(retail_price.value),
-            sales_commission: parseInt(sales_commission.value),
-            category_id: category.value,
-            is_active: is_active.value
+            category_id: category.value
         }),
     }).then(async (res) => {
         if (!res.ok) {
             alert('제품 추가에 실패했습니다.\nReason : ' + await res.text());
         } else {
-            isAddProductDialogVisible.value = false;
+            isProductDialogVisible.value = false;
+            fetchProducts();
+        }
+    });
+}
+
+function editProduct(id) {
+    return fetch('/api/product/' + id, {
+        method: 'PATCH',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + localStorage.getItem('authToken'),
+        },
+        body: JSON.stringify({
+            name: name.value,
+            retail_price: parseInt(retail_price.value),
+            category_id: category.value,
+            company_profit: parseInt(company_profit.value)
+        }),
+    }).then(async (res) => {
+        if (!res.ok) {
+            alert('제품 수정에 실패했습니다.\nReason : ' + await res.text());
+        } else {
+            isProductDialogVisible.value = false;
             fetchProducts();
         }
     });
@@ -174,97 +207,74 @@ function deleteProduct(id) {
     });
 }
 
-function onProductActivenessChange(event, id) {
-    return fetch('/api/product/' + id, {
-        method: 'PATCH',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + localStorage.getItem('authToken')
-        },
-        body: JSON.stringify({
-            is_active: event.target.checked
-        })
-    }).then(async (res) => {
-        if (!res.ok) {
-            alert('제품 사용 여부 변경에 실패했습니다.\nReason : ' + await res.text());
-        }
-    });
-
-}
-
-let installationCommissions = ref([]);
-
 let isCommissionDialogVisible = ref(false);
 
-watch(isCommissionDialogVisible, (value) => {
-    if (!value) {
-        fetchProducts();
-    }
-});
-
 let commission_type_id = ref(null);
-let commission_amount = ref(null);
+let commission_installation_amount = ref(null);
+let commission_sale_amount = ref(null);
 
 let productForCommissionDialog = ref(null);
 
 
-function fetchInstallationCommissions(productId) {
-    return fetch('/api/installation_commission?product_id=' + productId, {
-        method: 'GET',
-        headers: {
-            'Authorization': 'Bearer ' + localStorage.getItem('authToken'),
-        },
-    }).then(async (res) => {
-        if (!res.ok) {
-            alert('설치 수당 정보를 가져오는데 실패했습니다.\nReason : ' + await res.text());
-        } else {
-            res.json().then((data) => {
-                installationCommissions.value = data;
-            });
-        }
-    });
-}
-
 function openCommissionDialog(product) {
     productForCommissionDialog.value = product;
-    fetchInstallationCommissions(product.id);
     isCommissionDialogVisible.value = true;
 }
 
-function addInstallationCommission() {
-    return fetch('/api/installation_commission', {
+function addCommission() {
+    return fetch(`/api/product/${productForCommissionDialog.value.id}/commission/${commission_type_id.value}`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer ' + localStorage.getItem('authToken'),
         },
         body: JSON.stringify({
-            product_id: productForCommissionDialog.value.id,
-            installation_type_id: commission_type_id.value,
-            amount: commission_amount.value,
+            sale_commission: parseInt(commission_sale_amount.value),
+            installation_commission: parseInt(commission_installation_amount.value),
         }),
     }).then(async (res) => {
         if (!res.ok) {
-            alert('설치 수당 추가에 실패했습니다.\nReason : ' + await res.text());
+            alert('수당 추가에 실패했습니다.\nReason : ' + await res.text());
         } else {
-            fetchInstallationCommissions(productForCommissionDialog.value.id);
+            fetchProducts();
             commission_type_id.value = null;
-            commission_amount.value = null;
+            commission_sale_amount.value = null;
+            commission_installation_amount.value = null;
         }
     });
 }
 
-function deleteInstallataionCommission(id) {
-    return fetch('/api/installation_commission/' + id, {
+function editCommission(productId, installationTypeId, saleCommission, installationCommission) {
+    return fetch(`/api/product/${productId}/commission/${installationTypeId}`, {
+        method: 'PATCH',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + localStorage.getItem('authToken'),
+        },
+        body: JSON.stringify({
+            sale_commission: saleCommission,
+            installation_commission: installationCommission,
+        }),
+    }).then(async (res) => {
+        if (!res.ok) {
+            alert('수당 수정에 실패했습니다.\nReason : ' + await res.text());
+        } else {
+            fetchProducts();
+        }
+    });
+}
+
+function deleteCommission(productId, installationTypeId) {
+    return fetch(`/api/product/${productId}/commission/${installationTypeId}`, {
         method: 'DELETE',
         headers: {
             'Authorization': 'Bearer ' + localStorage.getItem('authToken'),
         }
     }).then(async (res) => {
         if (!res.ok) {
-            alert('설치 수당 삭제에 실패했습니다.\nReason : ' + await res.text());
+            alert('수당 삭제에 실패했습니다.\nReason : ' + await res.text());
         } else {
-            fetchInstallationCommissions(productForCommissionDialog.value.id);
+            fetchProducts();
         }
     });
 }
@@ -274,10 +284,10 @@ function deleteInstallataionCommission(id) {
     <div class="page-header">
         <h1>제품 관리</h1>
         <div class="button-div">
-            <button @click="isInstallationTypeDialogVisible = true" class="basic-button" id="add-installation-type">설치
+            <button @click="isInstallationTypeDialogVisible=true" class="basic-button" id="add-installation-type">설치
                 유형 관리</button>
             <div style="width: 16px;"></div>
-            <button @click="isAddProductDialogVisible = true" class="basic-button" id="add-product">제품 추가</button>
+            <button @click="openProductDialog('add')" class="basic-button" id="add-product">제품 추가</button>
         </div>
     </div>
     <div class="page-content">
@@ -285,61 +295,55 @@ function deleteInstallataionCommission(id) {
             <thead style="position: sticky;">
                 <tr>
                     <th>제품명</th>
+                    <th>순서</th>
                     <th>판매가</th>
-                    <th>영업수당</th>
+                    <th>회사이익</th>
                     <th>분류</th>
-                    <th>수당/수수료</th>
                     <th>수당관리</th>
-                    <th>사용중</th>
+                    <th>수정</th>
                     <th>삭제</th>
                 </tr>
             </thead>
             <tbody>
                 <tr v-for="product in products" :key="product.id">
                     <td>{{ product.name }}</td>
+                    <td>{{ product.display_order }}</td>
                     <td>{{ product.retail_price }}</td>
-                    <td>{{ product.sales_commission }}</td>
+                    <td>{{ product.company_profit }}</td>
                     <td>{{ product.category.name }}</td>
                     <td>
-                        {{ product.installation_commission.map(commission =>
-                            (commission.installation_type.is_afterservice ? '(A/S)' : '') +
-                            commission.installation_type.name +
-                            (commission.installation_type.is_afterservice &&
-                                commission.installation_type.is_free_for_customer ?
-                                '수수료' : '수당') + ' : ' + commission.amount).join(', ') }}
+                        <button style="width: 6em;" class="small-button" @click="openCommissionDialog(product)">수당
+                            관리</button>
                     </td>
-                    <td>
-                        <button style="width: 6em;" class="small-button" @click="openCommissionDialog(product)">수당 관리</button>
+                    <td><button style="width: 3rem;" class="small-button"
+                            @click="openProductDialog('edit', product)">수정</button></td>
+                    <td><button style="width: 3rem;" class="small-button" @click="deleteProduct(product.id)">삭제</button>
                     </td>
-                    <td><input @change="onProductActivenessChange($event, product.id)" type="checkbox"
-                            :checked="product.is_active"></td>
-                    <td><button style="width: 3rem;" class="small-button" @click="deleteProduct(product.id)">삭제</button></td>
                 </tr>
             </tbody>
         </table>
     </div>
 
-    <Dialog v-model:visible="isAddProductDialogVisible" style="width: 25em;">
+    <Dialog v-model:visible="isProductDialogVisible" style="width: 25em;">
         <template #header>
-            <h2 style="text-align: center;width: 100%;">제품 추가</h2>
+            <h2 style="text-align: center;width: 100%;">{{ productDialogMode === 'add' ? '제품 추가' : '제품 수정' }}</h2>
         </template>
         <form id="add-product-form">
             <label for="name">제품명</label>
             <input v-model="name" type="text" id="name" name="name" required>
             <label for="retail_price">판매가</label>
             <input v-model="retail_price" type="text" pattern="[0-9]+" id="retail_price" name="retail_price" required>
-            <label for="sales_commission">영업수당</label>
-            <input v-model="sales_commission" type="text" pattern="[0-9]+" id="sales_commission" name="sales_commission"
-                required>
+            <label for="company_profit">회사이익</label>
+            <input v-model="company_profit" type="text" pattern="[0-9]+" id="company_profit" name="company_profit" required>
             <label for="category">분류</label>
             <select v-model="category" id="category" required>
                 <option v-for="category in categories" :value="category.id">{{ category.name }}</option>
             </select>
-            <label for="is_active">사용중</label>
-            <input v-model="is_active" type="checkbox" id="is_active" name="is_active">
         </form>
         <template #footer>
-            <button class="basic-button" @click="onAddProductClick">추가</button>
+            <button class="basic-button"
+                @click="if (validateProductForm()) productDialogMode === 'add' ? addProduct() : editProduct(editProductId);">{{
+                    productDialogMode === 'add' ? '추가' : '수정' }}</button>
         </template>
     </Dialog>
 
@@ -372,45 +376,39 @@ function deleteInstallataionCommission(id) {
 
     <Dialog v-model:visible="isCommissionDialogVisible">
         <template #header>
-            <h2 style="display:block;text-align: center;width: 100%;">수당/수수료 관리(품목명 : {{ productForCommissionDialog.name
+            <h2 style="display:block;text-align: center;width: 100%;">수당 관리(품목명 : {{ productForCommissionDialog.name
                 }})</h2>
         </template>
         <table>
             <thead>
-                <th>이름</th>
-                <th>금액</th>
+                <th>유형</th>
+                <th>영업수당</th>
+                <th>설치수당</th>
                 <th>삭제/저장</th>
             </thead>
             <tbody>
-                <tr v-for="commission in installationCommissions" :key="commission.id">
-                    <td>{{ (commission.installation_type.is_afterservice ? '(A/S)' : '') +
-                        commission.installation_type.name
-                        +
-                        (commission.installation_type.is_afterservice &&
-                            commission.installation_type.is_free_for_customer ?
-                            '수수료' : '수당') }}</td>
-                    <td><input type="text" v-model="commission.amount" disabled></td>
+                <tr v-for="(installationCommission, index) in productForCommissionDialog.installation_commission.filter(ic => ic.is_active)"
+                    :key="index">
+                    <td>{{ installationCommission.installation_type.name }}</td>
+                    <td><input type="text" :value="productForCommissionDialog.sale_commission[index]?.amount" disabled>
+                    </td>
+                    <td><input type="text" :value="installationCommission.amount" disabled></td>
                     <td>
-                        <button class="small-button" @click="deleteInstallataionCommission(commission.id)">삭제</button>
+                        <button class="small-button"
+                            @click="deleteCommission(productForCommissionDialog.id, installationCommission.installation_type.id)">삭제</button>
                     </td>
                 </tr>
-                <tr
-                    v-if="!installationTypes.every(t => installationCommissions.some(c => c.installation_type.id === t.id))">
+                <tr>
                     <td>
                         <select v-model="commission_type_id">
-                            <option
-                                v-for="installationType in installationTypes.filter(t => !installationCommissions.some(c => c.installation_type_id == t.id))"
-                                :value="installationType.id">
-                                {{ (installationType.is_afterservice ? '(A/S)' : '') +
-                                    installationType.name +
-                                    (installationType.is_afterservice && installationType.is_free_for_customer ? '수수료' :
-                                        '수당')
-                                }}
+                            <option v-for="installationType in installationTypes" :value="installationType.id">
+                                {{ installationType.name }}
                             </option>
                         </select>
                     </td>
-                    <td><input type="text" v-model="commission_amount"></td>
-                    <td><button class="small-button" @click="addInstallationCommission">저장</button></td>
+                    <td><input type="text" v-model="commission_sale_amount"></td>
+                    <td><input type="text" v-model="commission_installation_amount"></td>
+                    <td><button class="small-button" @click="addCommission">저장</button></td>
                 </tr>
             </tbody>
         </table>
