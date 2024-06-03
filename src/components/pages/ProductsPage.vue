@@ -1,8 +1,8 @@
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, reactive, watch } from 'vue';
 import Dialog from 'primevue/dialog';
 
-let products = ref([]);
+let products = reactive([]);
 function fetchProducts() {
     fetch('/api/product', {
         method: 'GET',
@@ -15,8 +15,8 @@ function fetchProducts() {
             alert('제품 정보를 가져오는데 실패했습니다.\nReason : ' + await res.text());
         } else {
             res.json().then((data) => {
-                products.value = data.filter(p => p.is_active);
-                productForCommissionDialog.value = products.value.find(p => p.id === productForCommissionDialog.value?.id)
+                products.push(...data.filter(p => p.is_active));
+                productForCommissionDialog.value = products.find(p => p.id === productForCommissionDialog.value?.id)
             });
         }
     });
@@ -88,6 +88,38 @@ function openProductDialog(mode, product = null) {
     }
     isProductDialogVisible.value = true;
     editProductId.value = product ? product.id : null;
+}
+
+function reorderProducts(product, value) {
+    let putBehind = product.display_order < value;
+    product.display_order = value;
+    products.sort((a, b) => {
+        let value = a.display_order - b.display_order
+        if (value === 0) {
+            if (a.id === product.id || b.id === product.id)
+                if (a.id === product.id) return putBehind ? 1 : -1;
+                else return putBehind ? -1 : 1;
+        }
+        return value
+    });
+    products.forEach((product, index) => {
+        product.display_order = index + 1;
+    });
+    fetch('/api/product/display_order', {
+        method: 'PATCH',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + localStorage.getItem('authToken'),
+        },
+        body: JSON.stringify(products.map(p => ({
+            id: p.id,
+            display_order: p.display_order
+        })))
+    }).then(async (res) => {
+        if (!res.ok) {
+            alert('제품 표시 순서 변경에 실패했습니다.\nReason : ' + await res.text());
+        }
+    });
 }
 
 function validateProductForm() {
@@ -284,7 +316,7 @@ function deleteCommission(productId, installationTypeId) {
     <div class="page-header">
         <h1>제품 관리</h1>
         <div class="button-div">
-            <button @click="isInstallationTypeDialogVisible=true" class="basic-button" id="add-installation-type">설치
+            <button @click="isInstallationTypeDialogVisible = true" class="basic-button" id="add-installation-type">설치
                 유형 관리</button>
             <div style="width: 16px;"></div>
             <button @click="openProductDialog('add')" class="basic-button" id="add-product">제품 추가</button>
@@ -295,7 +327,7 @@ function deleteCommission(productId, installationTypeId) {
             <thead style="position: sticky;">
                 <tr>
                     <th>제품명</th>
-                    <th>순서</th>
+                    <th>표시순서</th>
                     <th>판매가</th>
                     <th>회사이익</th>
                     <th>분류</th>
@@ -307,7 +339,9 @@ function deleteCommission(productId, installationTypeId) {
             <tbody>
                 <tr v-for="product in products" :key="product.id">
                     <td>{{ product.name }}</td>
-                    <td>{{ product.display_order }}</td>
+                    <td style="width: 6rem;"><input @keydown="(ev) => { if (ev.key === 'Enter') ev.target.blur() }"
+                            @blur="reorderProducts(product, $event.target.value)" type="text"
+                            :value="product.display_order"></td>
                     <td>{{ product.retail_price }}</td>
                     <td>{{ product.company_profit }}</td>
                     <td>{{ product.category.name }}</td>
@@ -334,7 +368,8 @@ function deleteCommission(productId, installationTypeId) {
             <label for="retail_price">판매가</label>
             <input v-model="retail_price" type="text" pattern="[0-9]+" id="retail_price" name="retail_price" required>
             <label for="company_profit">회사이익</label>
-            <input v-model="company_profit" type="text" pattern="[0-9]+" id="company_profit" name="company_profit" required>
+            <input v-model="company_profit" type="text" pattern="[0-9]+" id="company_profit" name="company_profit"
+                required>
             <label for="category">분류</label>
             <select v-model="category" id="category" required>
                 <option v-for="category in categories" :value="category.id">{{ category.name }}</option>
