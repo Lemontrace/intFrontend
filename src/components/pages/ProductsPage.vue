@@ -15,6 +15,7 @@ function fetchProducts() {
             alert('제품 정보를 가져오는데 실패했습니다.\nReason : ' + await res.text());
         } else {
             res.json().then((data) => {
+                products.length = 0;
                 products.push(...data.filter(p => p.is_active));
                 productForCommissionDialog.value = products.find(p => p.id === productForCommissionDialog.value?.id)
             });

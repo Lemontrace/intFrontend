@@ -1,9 +1,50 @@
 <script setup>
 import router from '@/router';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 
 const sales = ref([]);
 const selected = ref([])
+
+const asRequests = ref([]);
+
+const entries = computed(() => {
+    let entries = [];
+    sales.value.forEach(
+        (sale) => {
+            entries.push({
+                display_id: sale.display_id,
+                seller: sale.seller.name,
+                total_amount: sale.sold_product.reduce((memo, product_sale) => memo + product_sale.total_amount, 0),
+                total_count: sale.sold_product.reduce((memo, product_sale) => memo + product_sale.count, 0),
+                commission: sale.sold_product.reduce((memo, product_sale) => {
+                    let commissionType = product_sale.product.sale_commission.find(
+                        (sc) => sc && sc.installation_type_id === product_sale.installation_type.id)
+
+                    let deduction = product_sale.product.retail_price * product_sale.count - product_sale.total_amount
+
+                    return memo + product_sale.count * commissionType.amount * sale.seller.user_rank.commission_rate - deduction
+                }, 0),
+                status: sale.is_new ? '신규' : sale.is_complete ? '완료됨' : '보류됨',
+            })
+        }
+    )
+    asRequests.value.forEach(
+        (asRequest) => {
+            entries.push({
+                display_id: asRequest.display_id,
+                seller: '(A/S요청)',
+                total_amount: asRequest.after_service_instance.reduce((memo, asi) => memo + asi.service_fee, 0),
+                total_count: asRequest.after_service_instance.reduce((memo, asi) => memo + asi.count, 0),
+                commission: asRequest.after_service_instance.reduce((memo, asi) => {
+                    if (asi.service_fee !== 0) return memo + 0;
+                    else return memo + asi.after_service_product.commission
+                }, 0),
+                status: 'A/S'
+            })
+        }
+    )
+    return entries;
+})
 
 function fetchSales() {
     fetch('/api/sale', {
@@ -29,6 +70,25 @@ function fetchSales() {
 }
 
 fetchSales();
+
+function fetchAfterServiceRequests() {
+    fetch('/api/after_service_request', {
+        method: 'GET',
+        headers: {
+            'Authorization': 'Bearer ' + localStorage.getItem('authToken'),
+        },
+    }).then((res) => {
+        if (!res.ok) {
+            alert('A/S 요청 정보를 가져오는데 실패했습니다');
+        } else {
+            res.json().then((data) => {
+                asRequests.value = data;
+            })
+        }
+    })
+}
+
+fetchAfterServiceRequests();
 
 function onDeleteSale(saleId) {
     fetch(`/api/sale/${saleId}`, {
@@ -67,31 +127,21 @@ function onDisplayInstallationForm(saleIdArray) {
                 <th>영업자</th>
                 <th>총 금액</th>
                 <th>총 수량</th>
-                <th>영업수당(예상)</th>
+                <th>수당(예상)</th>
                 <th>상태</th>
                 <th>삭제</th>
             </tr>
         </thead>
         <tbody>
-            <tr v-for="(sale, index) in sales" :key="sale.id">
+            <tr v-for="(entry, index) in entries" :key="index">
                 <td><input type="checkbox" @change="selected[index] = $event.target.checked" :checked="selected[index]">
                 </td>
-                <td>{{ sale.display_id }}</td>
-                <td>{{ sale.seller.name }}</td>
-                <td>{{ sale.sold_product.reduce((memo, product_sale) => memo + product_sale.total_amount, 0) }}</td>
-                <td>{{ sale.sold_product.reduce((memo, product_sale) => memo + product_sale.count, 0) }}</td>
-                <td>{{
-                    sale.sold_product.reduce((memo, product_sale) => {
-                        let commissionType = product_sale.product.sale_commission.find(
-                                (sc) => sc.is_active && sc.installation_type_id === product_sale.installation_type.id)
-                        
-                        let deduction = product_sale.product.retail_price * product_sale.count - product_sale.total_amount
-
-                        return memo + product_sale.count * commissionType.amount * sale.seller.user_rank.commission_rate - deduction
-                    }, 0)
-
-                }}</td>
-                <td>{{ sale.is_afterservice ? 'A/S' : sale.is_new ? '신규' : sale.is_complete ? '완료됨' : '보류됨' }}</td>
+                <td>{{ entry.display_id }}</td>
+                <td>{{ entry.seller }}</td>
+                <td>{{ entry.total_amount }}</td>
+                <td>{{ entry.total_count }}</td>
+                <td>{{ entry.commission }}</td>
+                <td>{{ entry.status }}</td>
                 <td><button class="small-button" @click="onDeleteSale(sale.id)">삭제</button></td>
             </tr>
         </tbody>

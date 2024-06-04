@@ -133,7 +133,8 @@ function addAfterServiceType() {
         </div>
     </div>
 
-    <div v-for="category in categories" style="padding: 16px;">
+    <div style="overflow-y: auto;height: 85%;">
+        <div v-for="category in categories" style="padding: 16px;">
         <h2>{{ category.name }}</h2>
         <div style="padding: 16px; width: 100%;">
             <table style="border: 1px solid #ddd;width: 100%;">
@@ -163,6 +164,7 @@ function addAfterServiceType() {
                 </tr>
             </table>
         </div>
+    </div>
     </div>
 
     <Dialog v-model:visible="isAfterServiceProductDialogVisible">
