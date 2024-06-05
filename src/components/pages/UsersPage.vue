@@ -162,6 +162,9 @@ fetchUserRanks();
 let userRankName = ref('');
 let userRankRate = ref(1);
 
+let userRankNameEdit = ref('');
+let userRankRateEdit = ref();
+
 
 function addUserRank() {
     fetch("/api/user_rank", {
@@ -186,7 +189,45 @@ function addUserRank() {
     });
 }
 
+function deleteUserRank(userRankId) {
+    fetch("/api/user_rank/" + userRankId, {
+        method: 'DELETE',
+        headers: {
+            'Authorization': 'Bearer ' + localStorage.getItem('authToken'),
+        }
+    }).then(async (res) => {
+        if (!res.ok) {
+            alert('사용자 등급 삭제에 실패했습니다.\nReason : ' + await res.text());
+        } else {
+            alert('사용자 등급 삭제에 성공했습니다.');
+            fetchUserRanks();
+        }
+    });
+}
+
+function editUserRank(userRankId) {
+    fetch("/api/user_rank/" + userRankId, {
+        method: 'PATCH',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + localStorage.getItem('authToken'),
+        },
+        body: JSON.stringify({
+            name: userRankName.value,
+            commission_rate: userRankRate.value,
+        }),
+    }).then(async (res) => {
+        if (!res.ok) {
+            alert('사용자 등급 수정에 실패했습니다.\nReason : ' + await res.text());
+        } else {
+            alert('사용자 등급 수정에 성공했습니다.');
+            fetchUserRanks();
+        }
+    });
+}
+
 let isUserRankDialogVisible = ref(false);
+let isUserRankEditDialogVisible = ref(false);
 
 </script>
 
@@ -264,23 +305,43 @@ let isUserRankDialogVisible = ref(false);
             <thead>
                 <th>이름</th>
                 <th>수당비율</th>
+                <th>수정</th>
                 <th>삭제/저장</th>
             </thead>
             <tbody>
                 <tr v-for="userRank in userRanks" :key="userRank.id">
                     <td>{{ userRank.name }}</td>
                     <td>{{ userRank.commission_rate }}</td>
+                    <td><button class="small-button">수정</button> </td>
                     <td><button @click="deleteUserRank(userRank.id)" class="small-button danger-button">삭제</button></td>
                 </tr>
                 <tr>
                     <td><input type="text" v-model="userRankName" id="installation-type-name" required></td>
                     <td><input type="text" v-model="userRankRate"></td>
+                    <td></td>
                     <td> <button class="small-button" @click="addUserRank">저장</button></td>
                 </tr>
             </tbody>
         </table>
         <template #footer>
             <button class="basic-button" @click="isUserRankDialogVisible = false">닫기</button>
+        </template>
+    </Dialog>
+
+    <Dialog v-model:visible="isUserRankEditDialogVisible">
+        <template #header>
+            <h2 style="text-align: center;width: 100%;">사용자 등급 수정</h2>
+        </template>
+        <div>
+            <label for="user-rank-name">이름</label>
+            <input type="text" id="user-rank-name" v-model="userRankName">
+        </div>
+        <div>
+            <label for="user-rank-rate">수당비율</label>
+            <input type="text" id="user-rank-rate" v-model="userRankRate">
+        </div>
+        <template #footer>
+            <button class="basic-button">수정</button>
         </template>
     </Dialog>
 </template>

@@ -198,7 +198,7 @@ function addCategory() {
                             '삭제' : '복구') }}</button>
                     <template v-if="category.is_active">
                         <h3 style="margin: 1rem;">
-                            상품명 : &#32;
+                            상품 이름 : &#32;
                         </h3>
                         <div v-for="location in locations.filter((location) => location.is_active && location.category_id === category.id)"
                             :key="location.id" class="location">
@@ -240,10 +240,10 @@ function addCategory() {
             <p>카테고리 : {{ categories.find((category) => category.id == selectedCategoryId).name }}</p>
             <label for="type">유형 : </label>
             <select id="type" v-model="selectedType">
-                <option value="1">설치 장소</option>
+                <option value="1">상품 이름</option>
                 <option value="2">필터 사이즈</option>
             </select>
-            <label for="location">상품 이름 : &#32;</label>
+            <label for="location">이름 : &#32;</label>
             <input type="text" v-model="newElementName" required>
         </div>
         <template #footer>

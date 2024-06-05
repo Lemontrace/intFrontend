@@ -3,69 +3,29 @@
 import { ref } from 'vue';
 import router from '@/router';
 
-const props = defineProps(['type','id']);
+const props = defineProps(['type', 'id']);
 
 const data = ref({});
 
-if (props.type === 'sale') {
-    fetch(`/api/sale/${props.id}`, {
-        method: 'GET',
-        headers: {
-            'Authorization': 'Bearer ' + localStorage.getItem('authToken'),
+fetch(`/api/sale/${props.id}`, {
+    method: 'GET',
+    headers: {
+        'Authorization': 'Bearer ' + localStorage.getItem('authToken'),
+    }
+}).then((res) => {
+    if (!res.ok) {
+        if (res.status === 401) {
+            alert('로그인이 필요합니다.');
+            router.push('/');
+            return;
         }
-    }).then((res) => {
-        if (!res.ok) {
-            if (res.status === 401) {
-                alert('로그인이 필요합니다.');
-                router.push('/');
-                return;
-            }
-            alert('영업 정보를 가져오는데 실패했습니다');
-        } else {
-            res.json().then((sale) => {
-                data.value = {
-                    type: 'sale',
-                    customer_name: sale.customer_name,
-                    customer_phone: sale.customer_phone,
-                    customer_address: sale.customer_address,
-                    seller_name: sale.seller.name,
-                    display_id: sale.display_id,
-                    products: sale.sold_product,
-                    measurement: sale.measurement,
-                };
-            })
-        }
-    })
-} else if (props.type === 'as') {
-    fetch(`/api/after_service_request/${props.id}`, {
-        method: 'GET',
-        headers: {
-            'Authorization': 'Bearer ' + localStorage.getItem('authToken'),
-        }
-    }).then((res) => {
-        if (!res.ok) {
-            if (res.status === 401) {
-                alert('로그인이 필요합니다.');
-                router.push('/');
-                return;
-            }
-            alert('A/S 정보를 가져오는데 실패했습니다');
-        } else {
-            res.json().then((as) => {
-                data.value = {
-                    type: 'as',
-                    customer_name: as.customer_name,
-                    customer_phone: as.customer_phone,
-                    customer_address: as.customer_address,
-                    seller_name: "A/S",
-                    display_id: as.display_id,
-                    products: as.after_service_instance,
-                    measurement: [],
-                };
-            })
-        }
-    })
-}
+        alert('영업 정보를 가져오는데 실패했습니다');
+    } else {
+        res.json().then((sale) => {
+            data.value = sale;
+        })
+    }
+})
 </script>
 
 <template>
@@ -106,28 +66,15 @@ if (props.type === 'sale') {
                     </tr>
                 </thead>
                 <tbody>
-                    <template v-if="data.type === 'sale'">
-                        <tr v-for="product_sale in data.products?.filter((product) => !product.is_complete)">
-                            <td>{{ product_sale.product.name }}</td>
-                            <td>{{ product_sale.product.installation_type.name }}</td>
-                            <td>{{ product_sale.count }}</td>
-                            <td>{{ product_sale.total_amount }}</td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                        </tr>
-                    </template>
-                    <template v-else-if="data.type === 'as'">
-                        <tr v-for="as_instance in data.products?.filter((product) => !product.is_complete)">
-                            <td>{{ as_instance.after_service_product.category.name }}</td>
-                            <td>{{ as_instance.after_service_product.after_service_type.name }}</td>
-                            <td>{{ as_instance.count }}</td>
-                            <td>{{ as_instance.service_fee }}</td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                        </tr>
-                    </template>
+                    <tr v-for="product_sale in data.sold_product?.filter((product) => !product.is_complete)">
+                        <td>{{ product_sale.product.name }}</td>
+                        <td>{{ product_sale.product.installation_type.name }}</td>
+                        <td>{{ product_sale.count }}</td>
+                        <td>{{ product_sale.total_amount }}</td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                    </tr>
                     <tr style="height: auto;"></tr>
                 </tbody>
             </table>

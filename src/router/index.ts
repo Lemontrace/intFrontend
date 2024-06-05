@@ -7,7 +7,6 @@ const router = createRouter({
       children: [
         { path: 'users', component: () => import('../components/pages/UsersPage.vue')},
         { path: 'products', component: () => import('../components/pages/ProductsPage.vue')},
-        { path: 'afterservices', component: () => import('../components/pages/AfterServicePage.vue')},
         { path: 'categories', component: () => import('../components/pages/CategoriesPage.vue')},
         { path: 'sales', component: () => import('../components/pages/SalesPage.vue')},
         { path: 'installations', component: () => import('../components/pages/InstallationPage.vue')}

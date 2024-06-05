@@ -73,7 +73,6 @@ function deletePaymentType(paymentTypeId) {
         <div class="sidebar">
             <router-link to="/admin/users">사용자 관리</router-link>
             <router-link to="/admin/products">제품 관리</router-link>
-            <router-link to="/admin/afterservices">A/S 관리</router-link>
             <router-link to="/admin/categories">카테고리 관리</router-link>
             <router-link to="/admin/sales">영업 목록</router-link>
             <router-link to="/admin/installations">설치 목록</router-link>
@@ -97,7 +96,7 @@ function deletePaymentType(paymentTypeId) {
                 <tbody>
                     <tr v-for="paymentType in paymentTypes" :key="paymentType.id">
                         <td>{{ paymentType.name }}</td>
-                        <td><input type="checkbox" disabled :value="paymentType.is_instantly_arrived"></td>
+                        <td><input type="checkbox" disabled :checked="paymentType.is_instantly_arrived"></td>
                         <td><button class="small-button danger-button" @click="deletePaymentType(paymentType.id)">삭제</button></td>
                     </tr>
                     <tr>

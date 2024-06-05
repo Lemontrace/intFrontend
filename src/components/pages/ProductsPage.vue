@@ -288,7 +288,7 @@ function deleteProduct(id) {
         <table id="table1">
             <thead style="position: sticky;">
                 <tr>
-                    <th>제품명</th>
+                    <th>제품명/AS명</th>
                     <th>표시순서</th>
                     <th>판매가</th>
                     <th>영업수당</th>
@@ -328,7 +328,7 @@ function deleteProduct(id) {
             <h2 style="text-align: center;width: 100%;">{{ productDialogMode === 'add' ? '제품 추가' : '제품 수정' }}</h2>
         </template>
         <form id="add-product-form">
-            <label for="name">제품명</label>
+            <label for="name">제품명/AS명</label>
             <input v-model="name" type="text" id="name" name="name" required>
             <label for="retail_price">판매가</label>
             <input v-model="retailPrice" type="text" pattern="[0-9]+" id="retail_price" name="retail_price" required>
@@ -352,14 +352,14 @@ function deleteProduct(id) {
             <input v-model="installationCommission" type="text" pattern="[0-9]+" id="installation_commission"
                 name="installation_commission" required>
             <label for="previous_product"> 이전 단계 상품</label>
-            <select v-model="previousProductId" id="previous_product" @change="fillRelatedProductInfo(parseInt($event.target.value))">
+            <select v-model="previousProductId" id="previous_product">
                 <option :value="null">(없음)</option>
                 <option v-for="product in products.filter(product => product.id !== editProductId)" :value="product.id">
                     {{ product.name }}
                 </option>
             </select>
             <label for="next_product"> 다음 단계 상품</label>
-            <select v-model="nextProductId" id="next_product" @change="fillRelatedProductInfo(parseInt($event.target.value))">
+            <select v-model="nextProductId" id="next_product">
                 <option :value="null">(없음)</option>
                 <option v-for="product in products.filter(product => product.id !== editProductId)" :value="product.id">
                     {{ product.name }}

@@ -55,6 +55,7 @@ function fetchInstalledProducts() {
                     .sort((a, b) => a.status === '완료' ? -1 : 1)
                     .sort((a, b) => b.display_id - a.display_id);
                 installed_products.value.forEach((installed_product) => {
+                    installed_product.original_amount = installed_product.sold_product.product.retail_price * installed_product.sold_product.count;
                     if (installed_product.status !== '완료') {
                         installed_product.payment_amount = 0;
                         installed_product.sale_commission = 0;
@@ -194,12 +195,11 @@ function openDatePicker(onPick) {
 const excelCommonRows = [
     { name: '고객번호', get: (installed_product) => installed_product.sold_product.sale.display_id },
     { name: '고객명', get: (installed_product) => installed_product.sold_product.sale.customer_name },
-    { name: '주소', get: (installed_product) => installed_product.sold_product.sale.customer_address },
     { name: '연락번호', get: (installed_product) => installed_product.sold_product.sale.customer_phone },
     { name: '품명', get: (installed_product) => installed_product.sold_product.product.name },
     { name: '유형', get: (installed_product) => installed_product.sold_product.product.category.name },
     { name: '수량', get: (installed_product) => installed_product.sold_product.count },
-    { name: '설치유형', get: (installed_product) => installed_product.sold_product.installation_type.name },
+    { name: '설치유형', get: (installed_product) => installed_product.sold_product.product.installation_type.name },
 ]
 const excelSaleRows = [
     { name: '영업자', get: (installed_product) => installed_product.sold_product.sale.seller.name },
@@ -238,7 +238,8 @@ function excelDownload(type) {
     else
         worksheet = workbook.addWorksheet('영업 목록');
 
-    let rows = excelCommonRows.concat(excelSaleRows);
+    let rows = excelCommonRows
+    if (type !== '설치') rows.concat(excelSaleRows);
     if (type !== '영업') rows = rows.concat(excelInstallRows);
     rows = rows.concat(excelCommonRows2);
     if (type === '어드민') rows = rows.concat(excelAdminRows);
@@ -275,23 +276,23 @@ function excelDownload(type) {
                     <th>순번</th>
                     <th>고객번호</th>
                     <th>고객명</th>
-                    <th>주소</th>
                     <th>연락번호</th>
                     <th>영업자</th>
                     <th>품명</th>
                     <th>유형</th>
                     <th>수량</th>
+                    <th>판매금액</th>
                     <th>영업금액</th>
                     <th>영업메모</th>
                     <th>설치자</th>
+                    <th>설치유형</th>
                     <th>설치상태</th>
                     <th>보류/취소사유</th>
-                    <th>설치유형</th>
                     <th>설치완료일</th>
                     <th>결제유형</th>
                     <th>결제금액</th>
-                    <th>회사입금일</th>
                     <th>설치메모</th>
+                    <th>회사입금일</th>
                     <th style="width: 12em;">영업수당</th>
                     <th style="width: 12em;">설치수당</th>
                     <th>수당지급일</th>
@@ -305,22 +306,23 @@ function excelDownload(type) {
                     <td>{{ index + 1 }}</td>
                     <td>{{ installed_product.sold_product.sale.display_id }}</td>
                     <td>{{ installed_product.sold_product.sale.customer_name }}</td>
-                    <td>{{ installed_product.sold_product.sale.customer_address }}</td>
                     <td>{{ installed_product.sold_product.sale.customer_phone }}</td>
                     <td>{{ installed_product.sold_product.sale.seller.name }}</td>
                     <td>{{ installed_product.sold_product.product.name }}</td>
                     <td>{{ installed_product.sold_product.product.category.name }}</td>
                     <td>{{ installed_product.sold_product.count }}</td>
+                    <td>{{ installed_product.original_amount }}</td>
                     <td>{{ installed_product.sold_product.total_amount }}</td>
                     <td>{{ installed_product.sold_product.sale.memo }}</td>
                     <td>{{ installed_product.installation.installer.name }}</td>
+                    <td>{{ installed_product.sold_product.product.installation_type.name }}</td>
                     <td>{{ installed_product.status }}</td>
                     <td>{{ installed_product.status_reason }}</td>
-                    <td>{{ installed_product.sold_product.product.installation_type.name }}</td>
                     <td>{{ installed_product.installation.date.split('T')[0] }}</td>
                     <template v-if="installed_product.status === '완료'">
                         <td>{{ installed_product.payment_type }}</td>
                         <td>{{ installed_product.payment_amount }}</td>
+                        <td>{{ installed_product.installation.memo }}</td>
                         <td>
                             <button class="small-button" @click="installed_product.payment_arrival_date ?
                                 updatePaymentArrivalDate(installed_product.id, null)
@@ -328,7 +330,6 @@ function excelDownload(type) {
                                 {{ installed_product.payment_arrival_date?.split('T')[0] ?? '선택' }}
                             </button>
                         </td>
-                        <td>{{ installed_product.installation.memo }}</td>
                         <td>
                             <template v-if="sale_commission_edit_state[index] === 'view'">
                                 {{ installed_product.sale_commission }}
