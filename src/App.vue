@@ -88,6 +88,10 @@ nav a:first-of-type {
   color: white;
 }
 
+.danger-button {
+  background-color:indianred;
+}
+
 .page-header {
   display: flex;
   align-items: center;

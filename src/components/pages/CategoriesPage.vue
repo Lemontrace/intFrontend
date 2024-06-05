@@ -18,7 +18,7 @@ function fetchCategories() {
             alert('카테고리 정보를 가져오는데 실패했습니다.\nReason : ' + await res.text());
         } else {
             res.json().then((data) => {
-                categories.value = data.sort((a,b)=>b.is_active - a.is_active);
+                categories.value = data.sort((a, b) => b.is_active - a.is_active);
             });
         }
     });
@@ -191,32 +191,32 @@ function addCategory() {
             <div>
                 <h2>{{ category.name + (category.is_active ? '' : '(삭제됨)') }}</h2>
                 <div class="category">
-                    <button @click="onAddLocationClick(category.id)" class="small-button" style="margin:1rem;">카테고리 요소
+                    <button @click="onAddLocationClick(category.id)" class="small-button" style="margin:1rem;">카테고리 상품
                         추가</button>
                     <button @click="category.is_active ? deleteCategory(category.id) : unDeleteCategory(category.id)"
                         class="small-button">{{ '카테고리 ' + (category.is_active ?
                             '삭제' : '복구') }}</button>
                     <template v-if="category.is_active">
                         <h3 style="margin: 1rem;">
-                            설치 장소 : &#32;
+                            상품명 : &#32;
                         </h3>
-                        <div v-for="location in locations.filter((location) => location.category_id === category.id)"
+                        <div v-for="location in locations.filter((location) => location.is_active && location.category_id === category.id)"
                             :key="location.id" class="location">
-                            <p>{{ location.name + (location.is_active ? '' : '(삭제됨)') }}</p>
+                            <p>{{ location.name }}</p>
                             <div style="margin:auto"></div>
                             <button @click="setCatoryElementActiveness(1, location.id, !location.is_active)"
-                                class="small-button">{{ location.is_active ? '삭제' : '복구' }}</button>
+                                class="small-button danger-button">삭제</button>
                         </div>
                         <h3 style="margin: 1rem;">
-                            측정 사이즈 : &#32;
+                            필터 사이즈 : &#32;
                         </h3>
-                        <div v-for="measurement_type in measurementTypes.filter((type) => type.category_id === category.id)"
+                        <div v-for="measurement_type in measurementTypes.filter((type) => type.is_active && type.category_id === category.id)"
                             :key="measurement_type.id" class="location">
-                            <p>{{ measurement_type.name + (measurement_type.is_active ? '' : '(삭제됨)') }}</p>
+                            <p>{{ measurement_type.name }}</p>
                             <div style="margin:auto"></div>
                             <button
                                 @click="setCatoryElementActiveness(2, measurement_type.id, !measurement_type.is_active)"
-                                class="small-button">{{ measurement_type.is_active ? '삭제' : '복구' }}</button>
+                                class="small-button danger-button">삭제</button>
                         </div>
                     </template>
                 </div>
@@ -235,15 +235,15 @@ function addCategory() {
         </template>
     </Dialog>
 
-    <Dialog header="카테고리 요소 추가" v-model:visible="isAddLocationDialogVisible" style="width: 25rem;">
+    <Dialog header="카테고리 상품 추가" v-model:visible="isAddLocationDialogVisible" style="width: 25rem;">
         <div>
             <p>카테고리 : {{ categories.find((category) => category.id == selectedCategoryId).name }}</p>
-            <label for="type">요소 유형 : </label>
+            <label for="type">유형 : </label>
             <select id="type" v-model="selectedType">
                 <option value="1">설치 장소</option>
-                <option value="2">측정 사이즈</option>
+                <option value="2">필터 사이즈</option>
             </select>
-            <label for="location">요소 이름 : &#32;</label>
+            <label for="location">상품 이름 : &#32;</label>
             <input type="text" v-model="newElementName" required>
         </div>
         <template #footer>

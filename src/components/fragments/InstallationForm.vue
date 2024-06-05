@@ -3,29 +3,69 @@
 import { ref } from 'vue';
 import router from '@/router';
 
-const props = defineProps(['id']);
+const props = defineProps(['type','id']);
 
-const sale = ref({});
+const data = ref({});
 
-fetch(`/api/sale/${props.id}`, {
-    method: 'GET',
-    headers: {
-        'Authorization': 'Bearer ' + localStorage.getItem('authToken'),
-    }
-}).then((res) => {
-    if (!res.ok) {
-        if (res.status === 401) {
-            alert('로그인이 필요합니다.');
-            router.push('/');
-            return;
+if (props.type === 'sale') {
+    fetch(`/api/sale/${props.id}`, {
+        method: 'GET',
+        headers: {
+            'Authorization': 'Bearer ' + localStorage.getItem('authToken'),
         }
-        alert('영업 정보를 가져오는데 실패했습니다');
-    } else {
-        res.json().then((data) => {
-            sale.value = data;
-        })
-    }
-})
+    }).then((res) => {
+        if (!res.ok) {
+            if (res.status === 401) {
+                alert('로그인이 필요합니다.');
+                router.push('/');
+                return;
+            }
+            alert('영업 정보를 가져오는데 실패했습니다');
+        } else {
+            res.json().then((sale) => {
+                data.value = {
+                    type: 'sale',
+                    customer_name: sale.customer_name,
+                    customer_phone: sale.customer_phone,
+                    customer_address: sale.customer_address,
+                    seller_name: sale.seller.name,
+                    display_id: sale.display_id,
+                    products: sale.sold_product,
+                    measurement: sale.measurement,
+                };
+            })
+        }
+    })
+} else if (props.type === 'as') {
+    fetch(`/api/after_service_request/${props.id}`, {
+        method: 'GET',
+        headers: {
+            'Authorization': 'Bearer ' + localStorage.getItem('authToken'),
+        }
+    }).then((res) => {
+        if (!res.ok) {
+            if (res.status === 401) {
+                alert('로그인이 필요합니다.');
+                router.push('/');
+                return;
+            }
+            alert('A/S 정보를 가져오는데 실패했습니다');
+        } else {
+            res.json().then((as) => {
+                data.value = {
+                    type: 'as',
+                    customer_name: as.customer_name,
+                    customer_phone: as.customer_phone,
+                    customer_address: as.customer_address,
+                    seller_name: "A/S",
+                    display_id: as.display_id,
+                    products: as.after_service_instance,
+                    measurement: [],
+                };
+            })
+        }
+    })
+}
 </script>
 
 <template>
@@ -35,21 +75,21 @@ fetch(`/api/sale/${props.id}`, {
             <table id="table1">
                 <tr>
                     <td>고객명</td>
-                    <td>{{ sale.customer_name }}</td>
+                    <td>{{ data.customer_name }}</td>
                     <td>고객번호</td>
-                    <td>{{ sale.display_id }}</td>
-                    <td>사원명</td>
-                    <td>{{ sale.seller ? sale.seller.name : "" }}</td>
+                    <td>{{ data.display_id }}</td>
+                    <td>점검사원명</td>
+                    <td>{{ data.seller_name }}</td>
                 </tr>
                 <tr>
                     <td>전화번호</td>
-                    <td>{{ sale.customer_phone }}</td>
+                    <td>{{ data.customer_phone }}</td>
                     <td>주소</td>
-                    <td colspan="3">{{ sale.customer_address }}</td>
+                    <td colspan="3">{{ data.customer_address }}</td>
                 </tr>
                 <tr>
-                    <td>메모</td>
-                    <td colspan="5">{{ sale.memo }}</td>
+                    <td>비고</td>
+                    <td colspan="5">{{ data.memo }}</td>
                 </tr>
 
             </table>
@@ -66,33 +106,46 @@ fetch(`/api/sale/${props.id}`, {
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="product_sale in (sale.sold_product ?? []).filter((product) => !product.is_complete)">
-                        <td>{{ product_sale.product.name }}</td>
-                        <td>{{ product_sale.installation_type.name }}</td>
-                        <td>{{ product_sale.count }}</td>
-                        <td>{{ product_sale.total_amount }}</td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                    </tr>
+                    <template v-if="data.type === 'sale'">
+                        <tr v-for="product_sale in data.products?.filter((product) => !product.is_complete)">
+                            <td>{{ product_sale.product.name }}</td>
+                            <td>{{ product_sale.product.installation_type.name }}</td>
+                            <td>{{ product_sale.count }}</td>
+                            <td>{{ product_sale.total_amount }}</td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                    </template>
+                    <template v-else-if="data.type === 'as'">
+                        <tr v-for="as_instance in data.products?.filter((product) => !product.is_complete)">
+                            <td>{{ as_instance.after_service_product.category.name }}</td>
+                            <td>{{ as_instance.after_service_product.after_service_type.name }}</td>
+                            <td>{{ as_instance.count }}</td>
+                            <td>{{ as_instance.service_fee }}</td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                    </template>
                     <tr style="height: auto;"></tr>
                 </tbody>
             </table>
-            <table id="table3" v-if="sale.measurement?.length ?? 0 > 0">
-                <tr v-for="i in Math.floor((sale.measurement.length - 1) / 3) + 1">
+            <table id="table3" v-if="data.measurement?.length ?? 0 > 0">
+                <tr v-for="i in Math.floor((data.measurement.length - 1) / 3) + 1">
                     <template v-for="j in 3">
-                        <template v-if="sale.measurement[(i - 1) * 3 + j - 1]">
-                            <td width="16.66%">{{ sale.measurement[(i - 1) * 3 + j - 1].measurement_type.name }}</td>
-                            <td width="16.66%">{{ sale.measurement[(i - 1) * 3 + j - 1].width + 'x' +
-                                sale.measurement[(i - 1) * 3 +
-                                    j - 1].height + 'x' + sale.measurement[(i - 1) * 3 + j - 1].thickness }}</td>
+                        <template v-if="data.measurement[(i - 1) * 3 + j - 1]">
+                            <td width="16.66%">{{ data.measurement[(i - 1) * 3 + j - 1].measurement_type.name }}</td>
+                            <td width="16.66%">{{ data.measurement[(i - 1) * 3 + j - 1].width + 'x' +
+                                data.measurement[(i - 1) * 3 +
+                                    j - 1].height + 'x' + data.measurement[(i - 1) * 3 + j - 1].thickness }}</td>
                         </template>
                     </template>
                 </tr>
             </table>
             <table id="table4">
                 <tr>
-                    <td style="width: 25%;">메모</td>
+                    <td style="width: 25%;">설치비고</td>
                     <td></td>
                 </tr>
             </table>
@@ -100,7 +153,7 @@ fetch(`/api/sale/${props.id}`, {
                 <div class="desc">
                     1. 설치/배송/케어 서비스 완료 후 이상 없음을 확인해주세요. <br>
                     2. 새 상품의 무상 A/S 기간은 1년 입니다.<br>
-                    3. 리퍼/케어 상품의 무상 A/S 기간은 1개월 입니다.<br>
+                    3. 리퍼/케어상품의 무상 A/S 기간은 리퍼(1년)/케어(1개월)입니다.<br>
                     4. 제품 및 A/S 내용을 꼭 확인 후 서명해주세요.
                 </div>
                 <div style="text-align: center; margin-bottom: 10px;">
@@ -172,6 +225,7 @@ table {
 }
 
 #table3 {
+
     tr,
     td {
         height: 16px;
@@ -179,6 +233,7 @@ table {
 }
 
 #table4 {
+
     tr,
     td {
         height: 64px;
@@ -192,7 +247,9 @@ td {
     font-size: 1rem;
 }
 
-table, td, th {
+table,
+td,
+th {
     border-collapse: collapse;
     border: 1px solid #000;
 }

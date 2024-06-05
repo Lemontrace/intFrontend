@@ -147,7 +147,7 @@ function addAfterServiceType() {
                     <template v-if="product.category_id === category.id">
                         <td>{{ product.after_service_type.name }}</td>
                         <td>{{ product.commission }}</td>
-                        <td><button class="small-button" @click="deleteAfterServiceProduct(product.id)">삭제</button></td>
+                        <td><button class="small-button danger-button" @click="deleteAfterServiceProduct(product.id)">삭제</button></td>
                     </template>
                 </tr>
                 <tr>

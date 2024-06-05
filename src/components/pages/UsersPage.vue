@@ -270,7 +270,7 @@ let isUserRankDialogVisible = ref(false);
                 <tr v-for="userRank in userRanks" :key="userRank.id">
                     <td>{{ userRank.name }}</td>
                     <td>{{ userRank.commission_rate }}</td>
-                    <td><button @click="deleteUserRank(userRank.id)" class="small-button">삭제</button></td>
+                    <td><button @click="deleteUserRank(userRank.id)" class="small-button danger-button">삭제</button></td>
                 </tr>
                 <tr>
                     <td><input type="text" v-model="userRankName" id="installation-type-name" required></td>

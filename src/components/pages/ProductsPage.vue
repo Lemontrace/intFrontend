@@ -2,7 +2,7 @@
 import { ref, reactive, watch } from 'vue';
 import Dialog from 'primevue/dialog';
 
-let products = reactive([]);
+const products = ref([]);
 function fetchProducts() {
     fetch('/api/product', {
         method: 'GET',
@@ -15,9 +15,7 @@ function fetchProducts() {
             alert('제품 정보를 가져오는데 실패했습니다.\nReason : ' + await res.text());
         } else {
             res.json().then((data) => {
-                products.length = 0;
-                products.push(...data.filter(p => p.is_active));
-                productForCommissionDialog.value = products.find(p => p.id === productForCommissionDialog.value?.id)
+                products.value = data.filter(p => p.is_active).sort((a, b) => a.display_order - b.display_order);
             });
         }
     });
@@ -78,14 +76,24 @@ function openProductDialog(mode, product = null) {
     productDialogMode.value = mode;
     if (mode === 'add') {
         name.value = '';
-        retail_price.value = '';
+        retailPrice.value = '';
         category.value = '';
         company_profit.value = '';
+        saleCommission.value = '';
+        installationCommission.value = '';
+        installationTypeId.value = null;
+        previousProductId.value = null;
+        nextProductId.value = null;
     } else {
         name.value = product.name;
-        retail_price.value = product.retail_price;
+        retailPrice.value = product.retail_price;
         category.value = product.category_id;
         company_profit.value = product.company_profit;
+        saleCommission.value = product.sale_commission;
+        installationCommission.value = product.installation_commission;
+        installationTypeId.value = product.installation_type_id;
+        previousProductId.value = product.previous_product?.id ?? null;
+        nextProductId.value = product.next_product_id;
     }
     isProductDialogVisible.value = true;
     editProductId.value = product ? product.id : null;
@@ -94,7 +102,7 @@ function openProductDialog(mode, product = null) {
 function reorderProducts(product, value) {
     let putBehind = product.display_order < value;
     product.display_order = value;
-    products.sort((a, b) => {
+    products.value.sort((a, b) => {
         let value = a.display_order - b.display_order
         if (value === 0) {
             if (a.id === product.id || b.id === product.id)
@@ -103,7 +111,7 @@ function reorderProducts(product, value) {
         }
         return value
     });
-    products.forEach((product, index) => {
+    products.value.forEach((product, index) => {
         product.display_order = index + 1;
     });
     fetch('/api/product/display_order', {
@@ -112,7 +120,7 @@ function reorderProducts(product, value) {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer ' + localStorage.getItem('authToken'),
         },
-        body: JSON.stringify(products.map(p => ({
+        body: JSON.stringify(products.value.map(p => ({
             id: p.id,
             display_order: p.display_order
         })))
@@ -175,9 +183,23 @@ function deleteInstallationType(id) {
 
 
 let name = ref('');
-let retail_price = ref('');
+let retailPrice = ref('');
 let category = ref('');
 let company_profit = ref('');
+let installationTypeId = ref('');
+let saleCommission = ref('');
+let installationCommission = ref('');
+let previousProductId = ref(null);
+let nextProductId = ref(null);
+
+function fillRelatedProductInfo(productId) {
+    let product = products.value.find(p => p.id === productId);
+    if (product) {
+        retailPrice.value = product.retail_price;
+        category.value = product.category_id;
+        company_profit.value = product.company_profit;
+    }
+}
 
 
 function addProduct() {
@@ -189,8 +211,14 @@ function addProduct() {
         },
         body: JSON.stringify({
             name: name.value,
-            retail_price: parseInt(retail_price.value),
-            category_id: category.value
+            retail_price: parseInt(retailPrice.value),
+            category_id: category.value,
+            company_profit: parseInt(company_profit.value),
+            installation_type_id: installationTypeId.value,
+            sale_commission: parseInt(saleCommission.value),
+            installation_commission: parseInt(installationCommission.value),
+            previous_product_id: parseInt(previousProductId.value),
+            next_product_id: parseInt(nextProductId.value)
         }),
     }).then(async (res) => {
         if (!res.ok) {
@@ -211,9 +239,14 @@ function editProduct(id) {
         },
         body: JSON.stringify({
             name: name.value,
-            retail_price: parseInt(retail_price.value),
+            retail_price: parseInt(retailPrice.value),
             category_id: category.value,
-            company_profit: parseInt(company_profit.value)
+            company_profit: parseInt(company_profit.value),
+            installation_type_id: installationTypeId.value,
+            sale_commission: parseInt(saleCommission.value),
+            installation_commission: parseInt(installationCommission.value),
+            previous_product_id: previousProductId.value,
+            next_product_id: nextProductId.value
         }),
     }).then(async (res) => {
         if (!res.ok) {
@@ -239,78 +272,6 @@ function deleteProduct(id) {
         }
     });
 }
-
-let isCommissionDialogVisible = ref(false);
-
-let commission_type_id = ref(null);
-let commission_installation_amount = ref(null);
-let commission_sale_amount = ref(null);
-
-let productForCommissionDialog = ref(null);
-
-
-function openCommissionDialog(product) {
-    productForCommissionDialog.value = product;
-    isCommissionDialogVisible.value = true;
-}
-
-function addCommission() {
-    return fetch(`/api/product/${productForCommissionDialog.value.id}/commission/${commission_type_id.value}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + localStorage.getItem('authToken'),
-        },
-        body: JSON.stringify({
-            sale_commission: parseInt(commission_sale_amount.value),
-            installation_commission: parseInt(commission_installation_amount.value),
-        }),
-    }).then(async (res) => {
-        if (!res.ok) {
-            alert('수당 추가에 실패했습니다.\nReason : ' + await res.text());
-        } else {
-            fetchProducts();
-            commission_type_id.value = null;
-            commission_sale_amount.value = null;
-            commission_installation_amount.value = null;
-        }
-    });
-}
-
-function editCommission(productId, installationTypeId, saleCommission, installationCommission) {
-    return fetch(`/api/product/${productId}/commission/${installationTypeId}`, {
-        method: 'PATCH',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + localStorage.getItem('authToken'),
-        },
-        body: JSON.stringify({
-            sale_commission: saleCommission,
-            installation_commission: installationCommission,
-        }),
-    }).then(async (res) => {
-        if (!res.ok) {
-            alert('수당 수정에 실패했습니다.\nReason : ' + await res.text());
-        } else {
-            fetchProducts();
-        }
-    });
-}
-
-function deleteCommission(productId, installationTypeId) {
-    return fetch(`/api/product/${productId}/commission/${installationTypeId}`, {
-        method: 'DELETE',
-        headers: {
-            'Authorization': 'Bearer ' + localStorage.getItem('authToken'),
-        }
-    }).then(async (res) => {
-        if (!res.ok) {
-            alert('수당 삭제에 실패했습니다.\nReason : ' + await res.text());
-        } else {
-            fetchProducts();
-        }
-    });
-}
 </script>
 
 <template>
@@ -330,9 +291,12 @@ function deleteCommission(productId, installationTypeId) {
                     <th>제품명</th>
                     <th>표시순서</th>
                     <th>판매가</th>
+                    <th>영업수당</th>
+                    <th>설치수당</th>
                     <th>회사이익</th>
                     <th>분류</th>
-                    <th>수당관리</th>
+                    <th>설치유형</th>
+                    <th>다음단계상품</th>
                     <th>수정</th>
                     <th>삭제</th>
                 </tr>
@@ -344,15 +308,15 @@ function deleteCommission(productId, installationTypeId) {
                             @blur="reorderProducts(product, $event.target.value)" type="text"
                             :value="product.display_order"></td>
                     <td>{{ product.retail_price }}</td>
+                    <td>{{ product.sale_commission }}</td>
+                    <td>{{ product.installation_commission }}</td>
                     <td>{{ product.company_profit }}</td>
                     <td>{{ product.category.name }}</td>
-                    <td>
-                        <button style="width: 6em;" class="small-button" @click="openCommissionDialog(product)">수당
-                            관리</button>
-                    </td>
+                    <td>{{ product.installation_type.name }}</td>
+                    <td>{{ product.next_product?.name ?? '(없음)' }}</td>
                     <td><button style="width: 3rem;" class="small-button"
                             @click="openProductDialog('edit', product)">수정</button></td>
-                    <td><button style="width: 3rem;" class="small-button" @click="deleteProduct(product.id)">삭제</button>
+                    <td><button style="width: 3rem;" class="small-button danger-button" @click="deleteProduct(product.id)">삭제</button>
                     </td>
                 </tr>
             </tbody>
@@ -367,13 +331,39 @@ function deleteCommission(productId, installationTypeId) {
             <label for="name">제품명</label>
             <input v-model="name" type="text" id="name" name="name" required>
             <label for="retail_price">판매가</label>
-            <input v-model="retail_price" type="text" pattern="[0-9]+" id="retail_price" name="retail_price" required>
+            <input v-model="retailPrice" type="text" pattern="[0-9]+" id="retail_price" name="retail_price" required>
             <label for="company_profit">회사이익</label>
             <input v-model="company_profit" type="text" pattern="[0-9]+" id="company_profit" name="company_profit"
                 required>
             <label for="category">분류</label>
             <select v-model="category" id="category" required>
                 <option v-for="category in categories" :value="category.id">{{ category.name }}</option>
+            </select>
+            <label for="installation_type">설치 유형</label>
+            <select v-model="installationTypeId" id="installation_type" required>
+                <option v-for="installationType in installationTypes" :value="installationType.id">
+                    {{ installationType.name }}
+                </option>
+            </select>
+            <label for="sale_commission">영업 수당</label>
+            <input v-model="saleCommission" type="text" pattern="[0-9]+" id="sale_commission" name="sale_commission"
+                required>
+            <label for="installation_commission"> 설치 수당</label>
+            <input v-model="installationCommission" type="text" pattern="[0-9]+" id="installation_commission"
+                name="installation_commission" required>
+            <label for="previous_product"> 이전 단계 상품</label>
+            <select v-model="previousProductId" id="previous_product" @change="fillRelatedProductInfo(parseInt($event.target.value))">
+                <option :value="null">(없음)</option>
+                <option v-for="product in products.filter(product => product.id !== editProductId)" :value="product.id">
+                    {{ product.name }}
+                </option>
+            </select>
+            <label for="next_product"> 다음 단계 상품</label>
+            <select v-model="nextProductId" id="next_product" @change="fillRelatedProductInfo(parseInt($event.target.value))">
+                <option :value="null">(없음)</option>
+                <option v-for="product in products.filter(product => product.id !== editProductId)" :value="product.id">
+                    {{ product.name }}
+                </option>
             </select>
         </form>
         <template #footer>
@@ -396,7 +386,7 @@ function deleteCommission(productId, installationTypeId) {
                 <tr v-for="installationType in installationTypes" :key="installationType.id">
                     <td>{{ installationType.name }}</td>
                     <td>
-                        <button class="small-button" @click="deleteInstallationType(installationType.id)">삭제</button>
+                        <button class="small-button danger-button" @click="deleteInstallationType(installationType.id)">삭제</button>
                     </td>
                 </tr>
                 <tr>
@@ -407,49 +397,6 @@ function deleteCommission(productId, installationTypeId) {
         </table>
         <template #footer>
             <button class="basic-button" @click="isInstallationTypeDialogVisible = false">닫기</button>
-        </template>
-    </Dialog>
-
-    <Dialog v-model:visible="isCommissionDialogVisible">
-        <template #header>
-            <h2 style="display:block;text-align: center;width: 100%;">수당 관리(품목명 : {{ productForCommissionDialog.name
-                }})</h2>
-        </template>
-        <table>
-            <thead>
-                <th>유형</th>
-                <th>영업수당</th>
-                <th>설치수당</th>
-                <th>삭제/저장</th>
-            </thead>
-            <tbody>
-                <tr v-for="(installationCommission, index) in productForCommissionDialog.installation_commission.filter(ic => ic.is_active)"
-                    :key="index">
-                    <td>{{ installationCommission.installation_type.name }}</td>
-                    <td><input type="text" :value="productForCommissionDialog.sale_commission[index]?.amount" disabled>
-                    </td>
-                    <td><input type="text" :value="installationCommission.amount" disabled></td>
-                    <td>
-                        <button class="small-button"
-                            @click="deleteCommission(productForCommissionDialog.id, installationCommission.installation_type.id)">삭제</button>
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        <select v-model="commission_type_id">
-                            <option v-for="installationType in installationTypes" :value="installationType.id">
-                                {{ installationType.name }}
-                            </option>
-                        </select>
-                    </td>
-                    <td><input type="text" v-model="commission_sale_amount"></td>
-                    <td><input type="text" v-model="commission_installation_amount"></td>
-                    <td><button class="small-button" @click="addCommission">저장</button></td>
-                </tr>
-            </tbody>
-        </table>
-        <template #footer>
-            <button class="basic-button" @click="isCommissionDialogVisible = false">닫기</button>
         </template>
     </Dialog>
 </template>

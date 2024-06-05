@@ -4,8 +4,8 @@ import InstallationForm from '@/components/fragments/InstallationForm.vue';
 
 const route = useRoute();
 
-const saleIds = Array.isArray(route.query.id) ? route.query.id : [route.query.id];
-console.log(saleIds);
+const types = Array.isArray(route.query.type) ? route.query.type : [route.query.type];
+const ids = Array.isArray(route.query.id) ? route.query.id : [route.query.id];
 function print() {
     window.print();
 }
@@ -14,8 +14,8 @@ function print() {
 <template>
     <button @click="print()" class="basic-button">프린트</button>
     <div>
-        <div v-for="saleId in saleIds" :key="saleId">
-            <InstallationForm :id="saleId" />
+        <div v-for="(id,index) in ids" :key="id">
+            <InstallationForm :type="types[index]" :id="id" />
         </div>
         <div class="page-break"></div>
     </div>

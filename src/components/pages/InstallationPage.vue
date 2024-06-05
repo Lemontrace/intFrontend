@@ -60,34 +60,25 @@ function fetchInstalledProducts() {
                         installed_product.sale_commission = 0;
                         installed_product.installation_commission = 0;
                     } else {
+                        const product = installed_product.sold_product.product
                         if (installed_product.sold_product.commission_override != null) installed_product.sale_commission = installed_product.sold_product.commission_override
                         else {
-                            const installType = installed_product.sold_product.installation_type
-                            const commissionType = installed_product.sold_product.product.sale_commission
-                                .find(
-                                    (sc) => sc.installation_type_id === installType.id
-                                )
-                            const originalSaleCommission =  commissionType.amount * installed_product.sold_product.sale.seller_rank.commission_rate
+                            const originalSaleCommission =
+                                product.sale_commission * installed_product.sold_product.sale.seller_rank.commission_rate * installed_product.sold_product.count;
                             const saleCommissionDeduction = installed_product.sold_product.product.retail_price * installed_product.sold_product.count - installed_product.sold_product.total_amount;
                             installed_product.sale_commission = originalSaleCommission - saleCommissionDeduction;
                         }
 
                         if (installed_product.commission_override != null) installed_product.installation_commission = installed_product.commission_override
                         else {
-                            const installType = installed_product.sold_product.installation_type
-                            const commissionType = installed_product.sold_product.product.installation_commission
-                                .find(
-                                    (ic) => ic.installation_type_id === installType.id
-                                )
-                            const originalInstallationCommission = commissionType ?
-                                commissionType.amount * installed_product.installation.installer_rank.commission_rate
-                                : -1;
+                            const originalInstallationCommission =
+                                product.installation_commission * installed_product.installation.installer_rank.commission_rate * installed_product.sold_product.count;
                             const installationCommissionDeduction = installed_product.sold_product.total_amount - installed_product.payment_amount
                             installed_product.installation_commission = originalInstallationCommission - installationCommissionDeduction;
                         }
                     }
 
-                    installed_product.pure_profit = installed_product.sold_product.product.company_profit - installed_product.sale_commission - installed_product.installation_commission;
+                    installed_product.pure_profit = installed_product.sold_product.product.company_profit * installed_product.sold_product.count - installed_product.sale_commission - installed_product.installation_commission;
                 });
                 if (firstLoad.value) {
                     firstLoad.value = false;
@@ -325,7 +316,7 @@ function excelDownload(type) {
                     <td>{{ installed_product.installation.installer.name }}</td>
                     <td>{{ installed_product.status }}</td>
                     <td>{{ installed_product.status_reason }}</td>
-                    <td>{{ installed_product.sold_product.installation_type.name }}</td>
+                    <td>{{ installed_product.sold_product.product.installation_type.name }}</td>
                     <td>{{ installed_product.installation.date.split('T')[0] }}</td>
                     <template v-if="installed_product.status === '완료'">
                         <td>{{ installed_product.payment_type }}</td>
@@ -407,7 +398,8 @@ function excelDownload(type) {
                             </td>
                         </template>
                     </template>
-                    <td><button class="small-button" @click="onDeleteInstallation(installed_product.id)">삭제</button>
+                    <td><button class="small-button danger-button"
+                            @click="onDeleteInstallation(installed_product.id)">삭제</button>
                     </td>
                 </tr>
             </tbody>
@@ -494,7 +486,8 @@ div.table-wrapper {
 }
 
 
-input[type="text"],input[type="date"] {
+input[type="text"],
+input[type="date"] {
     padding: 0.5rem;
     border: 1px solid #ddd;
     border-radius: 0.25rem;
