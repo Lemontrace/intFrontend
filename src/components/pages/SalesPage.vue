@@ -26,7 +26,7 @@ function fetchSales() {
                 data.forEach((sale) => {
                     sale.total_count = sale.sold_product.reduce((acc, product) => acc + product.count, 0);
                 })
-                selected.value =new Array(sales.value.length).fill(false);
+                selected.value = new Array(sales.value.length).fill(false);
             })
         }
     })
@@ -53,48 +53,50 @@ function onDisplayInstallationForm() {
         alert('선택된 항목이 없습니다.');
         return;
     }
-    router.push(`/installationFormMultiPage?${sales.value.filter((_, index) => selected.value[index]).map((e) =>'id=' + encodeURIComponent(e.id)).join('&')}`);
+    router.push(`/installationFormMultiPage?${sales.value.filter((_, index) => selected.value[index]).map((e) => 'id=' + encodeURIComponent(e.id)).join('&')}`);
 }
 </script>
 
 <template>
-    <div style="display: flex;align-items: center;">
+    <div style="display: flex;align-items: center;" class="page-header">
         <h1>영업 목록</h1>
-        <button class="basic-button"
-            @click="onDisplayInstallationForm()">설치
+        <button class="basic-button" @click="onDisplayInstallationForm()">설치
             확인서 {{ selected.filter(value => value).length }}개 출력</button>
     </div>
-    <table>
-        <thead>
-            <tr>
-                <th><input type="checkbox"
-                        @change="selected = selected.map((value,index)=>$event.target.checked && !sales[index].is_complete)">
-                </th>
-                <th>고객번호</th>
-                <th>고객명</th>
-                <th>연락번호</th>
-                <th>고객주소</th>
-                <th>영업자</th>
-                <th>총 수량</th>
-                <th>상태</th>
-                <th>삭제</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr v-for="(entry, index) in sales" :key="index"> 
-                <td><input type="checkbox" @change="selected[index] = $event.target.checked" :checked="selected[index] ">
-                </td>
-                <td>{{ entry.display_id }}</td>
-                <td>{{ entry.customer_name }}</td>
-                <td>{{ entry.customer_phone }}</td>
-                <td>{{ entry.customer_address }}</td>
-                <td>{{ entry.seller.name }}</td>
-                <td>{{ entry.total_count }}</td>
-                <td>{{ entry.is_new ? '신규' : entry.is_complete ? '완료' : '진행중' }}</td>
-                <td><button class="small-button danger-button" @click="onDeleteSale(entry.id)">삭제</button></td>
-            </tr>
-        </tbody>
-    </table>
+    <div class="page-content">
+        <table>
+            <thead>
+                <tr>
+                    <th><input type="checkbox"
+                            @change="selected = selected.map((value, index) => $event.target.checked && !sales[index].is_complete)">
+                    </th>
+                    <th>고객번호</th>
+                    <th>고객명</th>
+                    <th>연락번호</th>
+                    <th>고객주소</th>
+                    <th>영업자</th>
+                    <th>총 수량</th>
+                    <th>상태</th>
+                    <th>삭제</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr v-for="(entry, index) in sales" :key="index">
+                    <td><input type="checkbox" @change="selected[index] = $event.target.checked"
+                            :checked="selected[index]">
+                    </td>
+                    <td>{{ entry.display_id }}</td>
+                    <td>{{ entry.customer_name }}</td>
+                    <td>{{ entry.customer_phone }}</td>
+                    <td>{{ entry.customer_address }}</td>
+                    <td>{{ entry.seller.name }}</td>
+                    <td>{{ entry.total_count }}</td>
+                    <td>{{ entry.is_new ? '신규' : entry.is_complete ? '완료' : '진행중' }}</td>
+                    <td><button class="small-button danger-button" @click="onDeleteSale(entry.id)">삭제</button></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
 </template>
 
 <style scoped>
