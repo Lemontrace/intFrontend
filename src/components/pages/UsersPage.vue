@@ -151,7 +151,7 @@ function fetchUserRanks() {
             alert('사용자 등급 정보를 가져오는데 실패했습니다.\nReason : ' + await res.text());
         } else {
             res.json().then((data) => {
-                userRanks.value = data;
+                userRanks.value = data.filter((rank)=>rank.is_active);
             });
         }
     });
