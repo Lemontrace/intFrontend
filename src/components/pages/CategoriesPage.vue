@@ -24,6 +24,38 @@ function fetchCategories() {
     });
 }
 
+function reorderCategories(category, value) {
+    let putBehind = category.display_order < value;
+    category.display_order = value;
+    categories.value.sort((a, b) => {
+        let value = a.display_order - b.display_order
+        if (value === 0) {
+            if (a.id === category.id || b.id === category.id)
+                if (a.id === category.id) return putBehind ? 1 : -1;
+                else return putBehind ? -1 : 1;
+        }
+        return value
+    });
+    categories.value.forEach((category, index) => {
+        category.display_order = index + 1;
+    });
+    fetch('/api/category/display_order', {
+        method: 'PATCH',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + localStorage.getItem('authToken'),
+        },
+        body: JSON.stringify(categories.value.map(c => ({
+            id: c.id,
+            display_order: c.display_order
+        })))
+    }).then(async (res) => {
+        if (!res.ok) {
+            alert('카테고리 표시 순서 변경에 실패했습니다.\nReason : ' + await res.text());
+        }
+    });
+}
+
 function fetchLocations() {
     return fetch('/api/install_location', {
         method: 'GET'
@@ -191,6 +223,8 @@ function addCategory() {
             <div>
                 <h2>{{ category.name + (category.is_active ? '' : '(삭제됨)') }}</h2>
                 <div class="category">
+                    <input type="text" pattern="[0-9]*" :value="category.display_order" @change="reorderCategories(category, $event.target.value)"
+                        style="width: 3rem;">
                     <button @click="onAddLocationClick(category.id)" class="small-button" style="margin:1rem;">카테고리 상품
                         추가</button>
                     <button @click="category.is_active ? deleteCategory(category.id) : unDeleteCategory(category.id)"

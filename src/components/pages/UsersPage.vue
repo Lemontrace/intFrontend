@@ -162,6 +162,7 @@ fetchUserRanks();
 let userRankName = ref('');
 let userRankRate = ref(1);
 
+let userRankIdEdit = ref('');
 let userRankNameEdit = ref('');
 let userRankRateEdit = ref();
 
@@ -205,22 +206,30 @@ function deleteUserRank(userRankId) {
     });
 }
 
-function editUserRank(userRankId) {
-    fetch("/api/user_rank/" + userRankId, {
+function openUserRankEditDialog(userRank) {
+    userRankIdEdit.value = userRank.id;
+    userRankNameEdit.value = userRank.name;
+    userRankRateEdit.value = userRank.commission_rate;
+    isUserRankEditDialogVisible.value = true;
+}
+
+function editUserRank() {
+    fetch("/api/user_rank/" + userRankIdEdit.value, {
         method: 'PATCH',
         headers: {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer ' + localStorage.getItem('authToken'),
         },
         body: JSON.stringify({
-            name: userRankName.value,
-            commission_rate: userRankRate.value,
+            name: userRankNameEdit.value,
+            commission_rate: userRankRateEdit.value,
         }),
     }).then(async (res) => {
         if (!res.ok) {
             alert('사용자 등급 수정에 실패했습니다.\nReason : ' + await res.text());
         } else {
             alert('사용자 등급 수정에 성공했습니다.');
+            isUserRankEditDialogVisible.value = false;
             fetchUserRanks();
         }
     });
@@ -312,14 +321,14 @@ let isUserRankEditDialogVisible = ref(false);
                 <tr v-for="userRank in userRanks" :key="userRank.id">
                     <td>{{ userRank.name }}</td>
                     <td>{{ userRank.commission_rate }}</td>
-                    <td><button class="small-button">수정</button> </td>
+                    <td><button @click="openUserRankEditDialog(userRank)" class="small-button">수정</button> </td>
                     <td><button @click="deleteUserRank(userRank.id)" class="small-button danger-button">삭제</button></td>
                 </tr>
                 <tr>
                     <td><input type="text" v-model="userRankName" id="installation-type-name" required></td>
                     <td><input type="text" v-model="userRankRate"></td>
                     <td></td>
-                    <td> <button class="small-button" @click="addUserRank">저장</button></td>
+                    <td><button class="small-button" @click="addUserRank">저장</button></td>
                 </tr>
             </tbody>
         </table>
@@ -334,14 +343,14 @@ let isUserRankEditDialogVisible = ref(false);
         </template>
         <div>
             <label for="user-rank-name">이름</label>
-            <input type="text" id="user-rank-name" v-model="userRankName">
+            <input type="text" id="user-rank-name" v-model="userRankNameEdit">
         </div>
         <div>
             <label for="user-rank-rate">수당비율</label>
-            <input type="text" id="user-rank-rate" v-model="userRankRate">
+            <input type="text" id="user-rank-rate" v-model="userRankRateEdit">
         </div>
         <template #footer>
-            <button class="basic-button">수정</button>
+            <button @click="editUserRank(userRankIdEdit)" class="basic-button danger-button">수정</button>
         </template>
     </Dialog>
 </template>

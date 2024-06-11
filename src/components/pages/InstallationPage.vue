@@ -68,6 +68,7 @@ function fetchInstalledProducts() {
                                 product.sale_commission * installed_product.sold_product.sale.seller_rank.commission_rate * installed_product.sold_product.count;
                             const saleCommissionDeduction = installed_product.sold_product.product.retail_price * installed_product.sold_product.count - installed_product.sold_product.total_amount;
                             installed_product.sale_commission = originalSaleCommission - saleCommissionDeduction;
+                            if (saleCommissionDeduction !== 0) installed_product.salePriceChanged = true;
                         }
 
                         if (installed_product.commission_override != null) installed_product.installation_commission = installed_product.commission_override
@@ -76,6 +77,7 @@ function fetchInstalledProducts() {
                                 product.installation_commission * installed_product.installation.installer_rank.commission_rate * installed_product.sold_product.count;
                             const installationCommissionDeduction = installed_product.sold_product.total_amount - installed_product.payment_amount
                             installed_product.installation_commission = originalInstallationCommission - installationCommissionDeduction;
+                            if (installationCommissionDeduction !== 0) installed_product.installationPriceChanged = true;
                         }
                     }
 
@@ -183,6 +185,32 @@ function onDeleteInstallation(id) {
     });
 }
 
+let isSettlementMemoDialogVisible = ref(false);
+let installedProductForSettlementMemo = ref(null);
+function openSettlementMemoDialog(installedProduct) {
+    installedProductForSettlementMemo.value = installedProduct;
+    isSettlementMemoDialogVisible.value = true;
+}
+
+function saveSettlemetMemo() {
+    fetch('/api/installed_product/' + installedProductForSettlementMemo.value.id, {
+        method: 'PATCH',
+        headers: {
+            'Authorization': 'Bearer ' + localStorage.getItem('authToken'),
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            settlement_memo: installedProductForSettlementMemo.value.settlement_memo,
+        })
+    }).then(async (res) => {
+        if (!res.ok) {
+            alert('정산 메모를 저장하는데 실패했습니다.\nReason : ' + await res.text());
+        } else {
+            isSettlementMemoDialogVisible.value = false;
+        }
+    });
+}
+
 let isFilterDialogVisible = ref(false);
 
 let onPickFunction
@@ -274,30 +302,31 @@ function excelDownload(type) {
             <thead>
                 <tr>
                     <th>순번</th>
-                    <th>고객번호</th>
+                    <th style="width: 6rem;">고객번호</th>
                     <th>고객명</th>
-                    <th>연락번호</th>
+                    <th style="width: 8rem;">연락번호</th>
                     <th>영업자</th>
-                    <th>품명</th>
+                    <th style="width: 6rem;">품명</th>
                     <th>유형</th>
                     <th>수량</th>
-                    <th>판매금액</th>
-                    <th>영업금액</th>
-                    <th>영업메모</th>
+                    <th style="width: 6rem;">판매금액</th>
+                    <th style="width: 6rem;">영업금액</th>
+                    <th style="width: 8rem;">영업메모</th>
                     <th>설치자</th>
-                    <th>설치유형</th>
-                    <th>설치상태</th>
-                    <th>보류/취소사유</th>
-                    <th>설치완료일</th>
-                    <th>결제유형</th>
-                    <th>결제금액</th>
-                    <th>설치메모</th>
-                    <th>회사입금일</th>
-                    <th style="width: 12em;">영업수당</th>
-                    <th style="width: 12em;">설치수당</th>
-                    <th>수당지급일</th>
-                    <th>회사이익</th>
-                    <th>순이익</th>
+                    <th style="width: 5rem">설치유형</th>
+                    <th style="width: 5rem;">설치상태</th>
+                    <th style="width: 8rem;">보류/취소사유</th>
+                    <th style="width: 8rem;">설치완료일</th>
+                    <th style="width: 6rem;">결제유형</th>
+                    <th style="width: 6rem;">결제금액</th>
+                    <th style="width: 8rem;">설치메모</th>
+                    <th style="width: 8rem;">회사입금일</th>
+                    <th style="width: 8rem;">영업수당</th>
+                    <th style="width: 8rem;">설치수당</th>
+                    <th style="width: 8rem;">수당지급일</th>
+                    <th style="width: 5rem;">회사이익</th>
+                    <th style="width: 6rem;">정산메모</th>
+                    <th style="width: 5rem;">순이익</th>
                     <th>삭제</th>
                 </tr>
             </thead>
@@ -312,7 +341,7 @@ function excelDownload(type) {
                     <td>{{ installed_product.sold_product.product.category.name }}</td>
                     <td>{{ installed_product.sold_product.count }}</td>
                     <td>{{ installed_product.original_amount }}</td>
-                    <td>{{ installed_product.sold_product.total_amount }}</td>
+                    <td :class="{'price-changed': installed_product.salePriceChanged}">{{ installed_product.sold_product.total_amount }}</td>
                     <td>{{ installed_product.sold_product.sale.memo }}</td>
                     <td>{{ installed_product.installation.installer.name }}</td>
                     <td>{{ installed_product.sold_product.product.installation_type.name }}</td>
@@ -320,8 +349,8 @@ function excelDownload(type) {
                     <td>{{ installed_product.status_reason }}</td>
                     <td>{{ installed_product.installation.date.split('T')[0] }}</td>
                     <template v-if="installed_product.status === '완료'">
-                        <td>{{ installed_product.payment_type }}</td>
-                        <td>{{ installed_product.payment_amount }}</td>
+                        <td>{{ installed_product.payment_type.name }}</td>
+                        <td :class="{'price-changed': installed_product.installationPriceChanged}">{{ installed_product.payment_amount }}</td>
                         <td>{{ installed_product.installation.memo }}</td>
                         <td>
                             <button class="small-button" @click="installed_product.payment_arrival_date ?
@@ -388,13 +417,14 @@ function excelDownload(type) {
                             </button>
                         </td>
                         <td>{{ installed_product.sold_product.product.company_profit }}</td>
+                        <td><button class="small-button" @click="openSettlementMemoDialog(installed_product)">정산메모</button></td>
                         <td>{{ installed_product.pure_profit }}</td>
                     </template>
                     <template v-else>
-                        <template v-for="i in 9">
+                        <template v-for="i in 10">
                             <td>
-                                <template v-if="i === 4">
-                                    {{ installed_product.sold_product.sale.memo }}
+                                <template v-if="i === 3">
+                                    {{ installed_product.installation.memo }}
                                 </template>
                             </td>
                         </template>
@@ -454,6 +484,19 @@ function excelDownload(type) {
             <button class="small-button" @click="isFilterDialogVisible = false">닫기</button>
         </template>
     </Dialog>
+
+    <Dialog style="width: 32rem;" v-model:visible="isSettlementMemoDialogVisible">
+        <template #header>
+            <h2 style="text-align: center;width: 100%;">정산 메모</h2>
+        </template>
+        <div>
+            <textarea v-model="installedProductForSettlementMemo.settlement_memo" style="width: 100%;height: 10rem;resize: none"></textarea>
+        </div>
+        <template #footer>
+            <button class="small-button" @click="isSettlementMemoDialogVisible = false">취소</button>
+            <button class="small-button" @click="saveSettlemetMemo">저장</button>
+        </template>
+    </Dialog>
 </template>
 
 <style scoped>
@@ -476,10 +519,7 @@ td {
     text-align: center;
     text-wrap: wrap;
     word-wrap: break-word;
-}
-
-th {
-    width: 7rem;
+    width: 4rem;
 }
 
 div.table-wrapper {
@@ -497,5 +537,9 @@ input[type="date"] {
 
 input:invalid {
     border-color: red;
+}
+
+.price-changed {
+    color: red;
 }
 </style>

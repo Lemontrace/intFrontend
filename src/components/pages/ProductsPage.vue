@@ -181,6 +181,7 @@ function deleteInstallationType(id) {
 }
 
 
+let editPaidAfterService = ref(false)
 
 let name = ref('');
 let retailPrice = ref('');
@@ -192,14 +193,13 @@ let installationCommission = ref('');
 let previousProductId = ref(null);
 let nextProductId = ref(null);
 
-function fillRelatedProductInfo(productId) {
-    let product = products.value.find(p => p.id === productId);
-    if (product) {
-        retailPrice.value = product.retail_price;
-        category.value = product.category_id;
-        company_profit.value = product.company_profit;
+watch(retailPrice, (value) => {
+    if (editPaidAfterService.value) {
+        company_profit.value = value * 0.3;
+        saleCommission.value = 0
+        installationCommission.value = value * 0.7;
     }
-}
+});
 
 
 function addProduct() {
@@ -327,6 +327,12 @@ function deleteProduct(id) {
         <template #header>
             <h2 style="text-align: center;width: 100%;">{{ productDialogMode === 'add' ? '제품 추가' : '제품 수정' }}</h2>
         </template>
+        <div v-if="productDialogMode === 'add'">
+            <label>
+                유상 A/S 추가시 체크 : 
+                <input type="checkbox" v-model="editPaidAfterService">
+            </label>
+        </div>
         <form id="add-product-form">
             <label for="name">제품명/AS명</label>
             <input v-model="name" type="text" id="name" name="name" required>
@@ -334,7 +340,7 @@ function deleteProduct(id) {
             <input v-model="retailPrice" type="text" pattern="[0-9]+" id="retail_price" name="retail_price" required>
             <label for="company_profit">회사이익</label>
             <input v-model="company_profit" type="text" pattern="[0-9]+" id="company_profit" name="company_profit"
-                required>
+                required :disabled="editPaidAfterService">
             <label for="category">분류</label>
             <select v-model="category" id="category" required>
                 <option v-for="category in categories" :value="category.id">{{ category.name }}</option>
@@ -347,10 +353,10 @@ function deleteProduct(id) {
             </select>
             <label for="sale_commission">영업 수당</label>
             <input v-model="saleCommission" type="text" pattern="[0-9]+" id="sale_commission" name="sale_commission"
-                required>
+                required :disabled="editPaidAfterService">
             <label for="installation_commission"> 설치 수당</label>
             <input v-model="installationCommission" type="text" pattern="[0-9]+" id="installation_commission"
-                name="installation_commission" required>
+                name="installation_commission" required :disabled="editPaidAfterService">
             <label for="previous_product"> 이전 단계 상품</label>
             <select v-model="previousProductId" id="previous_product">
                 <option :value="null">(없음)</option>
