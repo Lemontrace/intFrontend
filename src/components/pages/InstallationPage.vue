@@ -30,8 +30,9 @@ function filterInstalledProduct(installedProduct) {
     if (filter.install_end_date && installedProduct.installation.date > filter.install_end_date) return false;
     if (filter.only_completed && installedProduct.status !== '완료') return false;
     return true;
-
 }
+
+const searchKeyword = ref('');
 
 const installed_products = ref([]);
 const sale_commission_edit_state = ref([]);
@@ -464,7 +465,7 @@ function excelDownload(type) {
         <template #header>
             <h2 style="text-align: center;width: 100%;">필터</h2>
         </template>
-        <div>
+        <div id="filter">
             <label for="seller">영업자 : &#32;</label>
             <input type="text" v-model="filter.seller">
             <label for="installer">설치자 : &#32;</label>
@@ -522,6 +523,12 @@ td {
     width: 4rem;
 }
 
+th {
+    position: sticky;
+    top: 0;
+    background-color: white;
+}
+
 div.table-wrapper {
     overflow-x: auto;
 }
@@ -532,7 +539,14 @@ input[type="date"] {
     padding: 0.5rem;
     border: 1px solid #ddd;
     border-radius: 0.25rem;
+}
+
+div#filter input{
     width: 100%;
+}
+
+td input {
+    width: 7em !important
 }
 
 input:invalid {

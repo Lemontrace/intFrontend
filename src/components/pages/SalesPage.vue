@@ -1,8 +1,10 @@
 <script setup>
 import router from '@/router';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 
 const sales = ref([]);
+const searchKeyword = ref('');
+const filteredSales = computed(() => sales.value.filter((sale) => sale.customer_name.includes(searchKeyword.value) || sale.display_id.includes(searchKeyword.value)));
 
 const selected = ref([]);
 
@@ -60,8 +62,12 @@ function onDisplayInstallationForm() {
 <template>
     <div style="display: flex;align-items: center;" class="page-header">
         <h1>영업 목록</h1>
-        <button class="basic-button" @click="onDisplayInstallationForm()">설치
-            확인서 {{ selected.filter(value => value).length }}개 출력</button>
+        <div style="display: flex;position: absolute;right: 2%;">
+            <input type="text" style="font-size: medium;" v-model="searchKeyword" placeholder="고객명이나 고객번호로 검색">
+            <div style="width: 16px;"></div>
+            <button class="basic-button" @click="onDisplayInstallationForm()">설치
+                확인서 {{ selected.filter(value => value).length }}개 출력</button>
+        </div>
     </div>
     <div class="page-content">
         <table>
@@ -77,11 +83,12 @@ function onDisplayInstallationForm() {
                     <th>영업자</th>
                     <th>총 수량</th>
                     <th>상태</th>
+                    <th>상세보기</th>
                     <th>삭제</th>
                 </tr>
             </thead>
             <tbody>
-                <tr v-for="(entry, index) in sales" :key="index">
+                <tr v-for="(entry, index) in filteredSales" :key="index">
                     <td><input type="checkbox" @change="selected[index] = $event.target.checked"
                             :checked="selected[index]">
                     </td>
@@ -92,6 +99,8 @@ function onDisplayInstallationForm() {
                     <td>{{ entry.seller.name }}</td>
                     <td>{{ entry.total_count }}</td>
                     <td>{{ entry.is_new ? '신규' : entry.is_complete ? '완료' : '진행중' }}</td>
+                    <td><button class="small-button"><router-link
+                                :to="'/admin/saleEdit/' + entry.id">보기</router-link></button></td>
                     <td><button class="small-button danger-button" @click="onDeleteSale(entry.id)">삭제</button></td>
                 </tr>
             </tbody>
@@ -100,6 +109,12 @@ function onDisplayInstallationForm() {
 </template>
 
 <style scoped>
+a {
+    display: block;
+    text-decoration: none;
+    color: white;
+}
+
 h1 {
     margin-bottom: 1rem;
     font-size: 3rem;
@@ -119,8 +134,9 @@ td {
     text-align: center;
 }
 
-.basic-button {
-    position: absolute;
-    right: 2%;
+th {
+    position: sticky;
+    top: 0;
+    background-color: white;
 }
 </style>
