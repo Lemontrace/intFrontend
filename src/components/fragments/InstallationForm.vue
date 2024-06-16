@@ -38,8 +38,8 @@ fetch(`/api/sale/${props.id}`, {
                     <td>{{ data.customer_name }}</td>
                     <td>고객번호</td>
                     <td>{{ data.display_id }}</td>
-                    <td>점검사원명</td>
-                    <td>{{ data.seller_name }}</td>
+                    <td>사원</td>
+                    <td>{{ data.seller?.name }}</td>
                 </tr>
                 <tr>
                     <td>전화번호</td>
