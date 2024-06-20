@@ -63,7 +63,7 @@ function onDisplayInstallationForm() {
     <div style="display: flex;align-items: center;" class="page-header">
         <h1>영업 목록</h1>
         <div style="display: flex;position: absolute;right: 2%;">
-            <input type="text" style="font-size: medium;" v-model="searchKeyword" placeholder="고객명이나 고객번호로 검색">
+            <input type="text" v-model="searchKeyword" placeholder="고객명이나 고객번호로 검색">
             <div style="width: 16px;"></div>
             <button class="basic-button" @click="onDisplayInstallationForm()">설치
                 확인서 {{ selected.filter(value => value).length }}개 출력</button>
@@ -109,6 +109,13 @@ function onDisplayInstallationForm() {
 </template>
 
 <style scoped>
+
+input[type="text"] {
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 0.25rem;
+}
+
 a {
     display: block;
     text-decoration: none;

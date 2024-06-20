@@ -35,12 +35,7 @@ function filterInstalledProduct(installedProduct) {
 const searchKeyword = ref('');
 
 const installed_products = ref([]);
-const sale_commission_edit_state = ref([]);
-const sale_commission_edit_value = ref([]);
-const installation_commission_edit_state = ref([]);
-const installation_commission_edit_value = ref([]);
 
-const firstLoad = ref(true);
 function fetchInstalledProducts() {
     fetch('/api/installed_product', {
         method: 'GET',
@@ -52,6 +47,7 @@ function fetchInstalledProducts() {
             alert('설치 정보를 가져오는데 실패했습니다.\nReason : ' + await res.text());
         } else {
             res.json().then((data) => {
+                const original = installed_products.value;
                 installed_products.value = data.sort((a, b) => a.id - b.id)
                     .sort((a, b) => a.status === '완료' ? -1 : 1)
                     .sort((a, b) => b.display_id - a.display_id);
@@ -80,20 +76,57 @@ function fetchInstalledProducts() {
                             installed_product.installation_commission = originalInstallationCommission - installationCommissionDeduction;
                             if (installationCommissionDeduction !== 0) installed_product.installationPriceChanged = true;
                         }
+
+                        installed_product.care_commission = installed_product.care_commission_override ?? product.care_commission * installed_product.sold_product.count;
+                        installed_product.company_profit = installed_product.company_profit_override ??
+                            (product.company_profit * installed_product.sold_product.count);
+                        installed_product.pure_profit = installed_product.company_profit - installed_product.sale_commission - installed_product.installation_commission
+                            - installed_product.care_commission
+
                     }
 
-                    installed_product.pure_profit = installed_product.sold_product.product.company_profit * installed_product.sold_product.count - installed_product.sale_commission - installed_product.installation_commission;
+                    const originalIP = original.find((ip) => ip.id === installed_product.id);
+                    if (originalIP) {
+                        installed_product.sale_commission_edit_state = originalIP.sale_commission_edit_state;
+                        installed_product.sale_commission_edit_value = originalIP.sale_commission_edit_value;
+                        installed_product.installation_commission_edit_state = originalIP.installation_commission_edit_state;
+                        installed_product.installation_commission_edit_value = originalIP.installation_commission_edit_value;
+                        installed_product.company_profit_edit_state = originalIP.company_profit_edit_state;
+                        installed_product.company_profit_edit_value = originalIP.company_profit_edit_value;
+                    } else {
+                        installed_product.sale_commission_edit_state = 'view';
+                        installed_product.sale_commission_edit_value = '';
+                        installed_product.installation_commission_edit_state = 'view';
+                        installed_product.installation_commission_edit_value = '';
+                        installed_product.company_profit_edit_state = 'view';
+                        installed_product.company_profit_edit_value = '';
+                    }
                 });
-                if (firstLoad.value) {
-                    firstLoad.value = false;
-                    sale_commission_edit_state.value = Array(installed_products.value.length).fill('view');
-                    installation_commission_edit_state.value = Array(installed_products.value.length).fill('view');
-                }
             });
         }
     });
 }
 fetchInstalledProducts();
+
+const paymentTypes = ref([]);
+
+function fetchPaymentTypes() {
+    fetch('/api/payment_type', {
+        method: 'GET',
+        headers: {
+            'Authorization': 'Bearer ' + localStorage.getItem('authToken'),
+        }
+    }).then(async (res) => {
+        if (!res.ok) {
+            alert('결제유형 정보를 가져오는데 실패했습니다\nReason: ' + await res.text());
+        } else {
+            res.json().then((data) => {
+                paymentTypes.value = data.filter((paymentType) => paymentType.is_active);
+            })
+        }
+    })
+}
+fetchPaymentTypes()
 
 function updateSaleCommissionOverride(soldProductId, saleCommission) {
     fetch('/api/sold_product/' + soldProductId, {
@@ -132,6 +165,26 @@ function updateInstallationCommissionOverride(installedProductId, installationCo
         }
     });
 }
+
+function updateCompanyProfitOverride(installedProductId, companyProfitOverride) {
+    fetch('/api/installed_product/' + installedProductId, {
+        method: 'PATCH',
+        headers: {
+            'Authorization': 'Bearer ' + localStorage.getItem('authToken'),
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            company_profit_override: parseInt(companyProfitOverride),
+        })
+    }).then(async (res) => {
+        if (!res.ok) {
+            alert('회사 이익을 업데이트하는데 실패했습니다.\nReason : ' + await res.text());
+        } else {
+            fetchInstalledProducts();
+        }
+    });
+}
+
 
 function updatePaymentArrivalDate(id, date) {
     fetch('/api/installed_product/' + id, {
@@ -220,6 +273,48 @@ function openDatePicker(onPick) {
     onPickFunction = onPick;
 }
 
+let isEditDialogVisible = ref(false);
+let editData = reactive({
+    id: '',
+    status: '',
+    status_reason: '',
+    payment_type_id: '',
+    payment_amount: '',
+});
+
+function openEditDialog(installedProduct) {
+    editData.id = installedProduct.id;
+    editData.status = installedProduct.status;
+    editData.status_reason = installedProduct.status_reason;
+    editData.payment_type_id = installedProduct.payment_type?.id;
+    editData.payment_amount = installedProduct.payment_amount;
+    isEditDialogVisible.value = true;
+}
+
+function updateInstallation() {
+    fetch('/api/installed_product/' + editData.id, {
+        method: 'PATCH',
+        headers: {
+            'Authorization': 'Bearer ' + localStorage.getItem('authToken'),
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            status: editData.status,
+            status_reason: editData.status_reason,
+            payment_type_id: parseInt(editData.payment_type_id),
+            payment_amount: parseInt(editData.payment_amount),
+        })
+    }).then(async (res) => {
+        if (!res.ok) {
+            alert('설치 정보를 업데이트하는데 실패했습니다.\nReason : ' + await res.text());
+        } else {
+            alert('업데이트 성공')
+            fetchInstalledProducts();
+            isEditDialogVisible.value = false;
+        }
+    });
+}
+
 
 const excelCommonRows = [
     { name: '고객번호', get: (installed_product) => installed_product.sold_product.sale.display_id },
@@ -293,6 +388,7 @@ function excelDownload(type) {
     <div class="page-header">
         <h1>설치 목록</h1>
         <div style="position: absolute;display: flex;right: 2%;gap: 16px;">
+            <input type="text" v-model="searchKeyword" placeholder="고객명이나 고객번호로 검색">
             <button @click="isFilterDialogVisible = true" class="basic-button">필터</button>
             <button @click="isExcelDownloadDialogVisible = true" class="basic-button">엑셀 다운로드</button>
 
@@ -324,15 +420,20 @@ function excelDownload(type) {
                     <th style="width: 8rem;">회사입금일</th>
                     <th style="width: 8rem;">영업수당</th>
                     <th style="width: 8rem;">설치수당</th>
+                    <th style="width: 8rem;">케어수당</th>
                     <th style="width: 8rem;">수당지급일</th>
                     <th style="width: 5rem;">회사이익</th>
                     <th style="width: 6rem;">정산메모</th>
                     <th style="width: 5rem;">순이익</th>
+                    <th>수정</th>
                     <th>삭제</th>
                 </tr>
             </thead>
             <tbody>
-                <tr v-for="(installed_product, index) in installed_products.filter(filterInstalledProduct)">
+                <tr v-for="(installed_product, index) in installed_products.filter(filterInstalledProduct).filter(
+                    (installed_product) => installed_product.sold_product.sale.customer_name.includes(searchKeyword) ||
+                        installed_product.sold_product.sale.display_id.toString().includes(searchKeyword)
+                )">
                     <td>{{ index + 1 }}</td>
                     <td>{{ installed_product.sold_product.sale.display_id }}</td>
                     <td>{{ installed_product.sold_product.sale.customer_name }}</td>
@@ -342,7 +443,8 @@ function excelDownload(type) {
                     <td>{{ installed_product.sold_product.product.category.name }}</td>
                     <td>{{ installed_product.sold_product.count }}</td>
                     <td>{{ installed_product.original_amount }}</td>
-                    <td :class="{'price-changed': installed_product.salePriceChanged}">{{ installed_product.sold_product.total_amount }}</td>
+                    <td :class="{ 'price-changed': installed_product.salePriceChanged }">{{
+                        installed_product.sold_product.total_amount }}</td>
                     <td>{{ installed_product.sold_product.sale.memo }}</td>
                     <td>{{ installed_product.installation.installer.name }}</td>
                     <td>{{ installed_product.sold_product.product.installation_type.name }}</td>
@@ -351,7 +453,8 @@ function excelDownload(type) {
                     <td>{{ installed_product.installation.date.split('T')[0] }}</td>
                     <template v-if="installed_product.status === '완료'">
                         <td>{{ installed_product.payment_type.name }}</td>
-                        <td :class="{'price-changed': installed_product.installationPriceChanged}">{{ installed_product.payment_amount }}</td>
+                        <td :class="{ 'price-changed': installed_product.installationPriceChanged }">{{
+                            installed_product.payment_amount }}</td>
                         <td>{{ installed_product.installation.memo }}</td>
                         <td>
                             <button class="small-button" @click="installed_product.payment_arrival_date ?
@@ -361,55 +464,59 @@ function excelDownload(type) {
                             </button>
                         </td>
                         <td>
-                            <template v-if="sale_commission_edit_state[index] === 'view'">
+                            <template v-if="installed_product.sale_commission_edit_state === 'view'">
                                 {{ installed_product.sale_commission }}
                             </template>
                             <template v-else>
                                 <input pattern="-{0,1}[0-9]+" style="width: 10em;" type="text"
-                                    v-model="sale_commission_edit_value[index]">
+                                    v-model="installed_product.sale_commission_edit_value">
                             </template>
                             <br>
                             <button class="small-button" @click="
                             if (installed_product.sold_product.commission_override !== null) {
                                 updateSaleCommissionOverride(installed_product.sold_product.id, null)
-                                sale_commission_edit_value[index] = '';
+                                installed_product.sale_commission_edit_value = '';
                             } else {
-                                if (sale_commission_edit_state[index] === 'edit') {
-                                    updateSaleCommissionOverride(installed_product.sold_product.id, sale_commission_edit_value[index]);
+                                if (installed_product.sale_commission_edit_state === 'edit') {
+                                    updateSaleCommissionOverride(installed_product.sold_product.id, installed_product.sale_commission_edit_value);
                                 }
-                                sale_commission_edit_state[index] = sale_commission_edit_state[index] === 'view' ? 'edit' : 'view';
+                                installed_product.sale_commission_edit_state = installed_product.sale_commission_edit_state === 'view' ? 'edit' : 'view';
                             }
                                 ">
                                 {{ installed_product.sold_product.commission_override !== null ? '초기화' :
-                                    sale_commission_edit_state[index] ===
+                                    installed_product.sale_commission_edit_state ===
                                         'view' ? '수정' : '저장' }}
                             </button>
                         </td>
                         <td>
-                            <template v-if="installation_commission_edit_state[index] === 'view'">
+                            <template v-if="installed_product.installation_commission_edit_state === 'view'">
                                 {{ installed_product.installation_commission }}
                             </template>
                             <template v-else>
                                 <input pattern="-{0,1}[0-9]+" style="width: 10em;" type="text"
-                                    v-model="installation_commission_edit_value[index]">
+                                    v-model="installed_product.installation_commission_edit_value">
                             </template>
                             <br>
                             <button class="small-button" @click="
                             if (installed_product.commission_override !== null) {
                                 updateInstallationCommissionOverride(installed_product.id, null)
-                                installation_commission_edit_value[index] = '';
+                                installed_product.installation_commission_edit_value = '';
                             } else {
-                                if (installation_commission_edit_state[index] === 'edit') {
-                                    updateInstallationCommissionOverride(installed_product.id, installation_commission_edit_value[index]);
+                                if (installed_product.installation_commission_edit_state === 'edit') {
+                                    updateInstallationCommissionOverride(installed_product.id, installed_product.installation_commission_edit_value);
                                 }
-                                installation_commission_edit_state[index] = installation_commission_edit_state[index] === 'view' ? 'edit' : 'view';
+                                installed_product.installation_commission_edit_state = installed_product.installation_commission_edit_state === 'view' ? 'edit' : 'view';
                             }
                                 ">
                                 {{ installed_product.commission_override !== null ? '초기화' :
-                                    installation_commission_edit_state[index] ===
+                                    installed_product.installation_commission_edit_state ===
                                         'view' ? '수정' : '저장' }}
                             </button>
                         </td>
+                        <td>
+                            {{ installed_product.care_commission }}
+                        </td>
+
                         <td>
                             <button class="small-button" @click="installed_product.commission_payment_date ?
                                 updateCommissionPaymentDate(installed_product.id, null)
@@ -417,12 +524,38 @@ function excelDownload(type) {
                                 {{ installed_product.commission_payment_date?.split('T')[0] ?? '선택' }}
                             </button>
                         </td>
-                        <td>{{ installed_product.sold_product.product.company_profit }}</td>
-                        <td><button class="small-button" @click="openSettlementMemoDialog(installed_product)">정산메모</button></td>
+                        <td>
+                            <template v-if="installed_product.company_profit_edit_state === 'view'">
+                                {{ installed_product.company_profit }}
+                            </template>
+                            <template v-else>
+                                <input pattern="-{0,1}[0-9]+" style="width: 5em;" type="text"
+                                    v-model="installed_product.company_profit_edit_value">
+                            </template>
+                            <br>
+                            <button class="small-button" @click="
+                            if (installed_product.company_profit_override !== null) {
+                                updateCompanyProfitOverride(installed_product.id, null)
+                                installed_product.company_profit_edit_value = '';
+                            } else {
+                                if (installed_product.company_profit_edit_state === 'edit') {
+                                    updateCompanyProfitOverride(installed_product.id, installed_product.company_profit_edit_value);
+                                }
+                                installed_product.company_profit_edit_state = installed_product.company_profit_edit_state === 'view' ? 'edit' : 'view';
+                            }
+                                ">
+                                {{ installed_product.company_profit_override !== null ? '초기화' :
+                                    installed_product.company_profit_edit_state ===
+                                        'view' ? '수정' : '저장' }}
+                            </button>
+
+                        </td>
+                        <td><button class="small-button"
+                                @click="openSettlementMemoDialog(installed_product)">정산메모</button></td>
                         <td>{{ installed_product.pure_profit }}</td>
                     </template>
                     <template v-else>
-                        <template v-for="i in 10">
+                        <template v-for="i in 11">
                             <td>
                                 <template v-if="i === 3">
                                     {{ installed_product.installation.memo }}
@@ -430,6 +563,9 @@ function excelDownload(type) {
                             </td>
                         </template>
                     </template>
+                    <td>
+                        <button class="small-button" @click="openEditDialog(installed_product)">수정</button>
+                    </td>
                     <td><button class="small-button danger-button"
                             @click="onDeleteInstallation(installed_product.id)">삭제</button>
                     </td>
@@ -491,11 +627,46 @@ function excelDownload(type) {
             <h2 style="text-align: center;width: 100%;">정산 메모</h2>
         </template>
         <div>
-            <textarea v-model="installedProductForSettlementMemo.settlement_memo" style="width: 100%;height: 10rem;resize: none"></textarea>
+            <textarea v-model="installedProductForSettlementMemo.settlement_memo"
+                style="width: 100%;height: 10rem;resize: none"></textarea>
         </div>
         <template #footer>
             <button class="small-button" @click="isSettlementMemoDialogVisible = false">취소</button>
             <button class="small-button" @click="saveSettlemetMemo">저장</button>
+        </template>
+    </Dialog>
+
+    <Dialog v-model:visible="isEditDialogVisible">
+        <template #header>
+            <h2 style="text-align: center;width: 100%;">설치 수정</h2>
+        </template>
+        <div id="edit-div" style="display: flex;flex-direction: column;">
+            <label>
+                설치상태 :&#32;
+                <select v-model="editData.status">
+                    <option>완료</option>
+                    <option>보류</option>
+                    <option>취소</option>
+                </select>
+            </label>
+            <label v-if="editData.status !== '완료'">
+                보류/취소사유 :&#32;
+                <input type="text" v-model="editData.status_reason">
+            </label>
+            <label v-if="editData.status === '완료'">
+                결제유형 :&#32;
+                <select v-model="editData.payment_type_id">
+                    <option v-for="paymentType in paymentTypes" :value="paymentType.id">{{ paymentType.name }}</option>
+                </select>
+            </label>
+            <label v-if="editData.status === '완료'">
+                결제금액 :&#32;
+                <input type="text" v-model="editData.payment_amount">
+            </label>
+        </div>
+        <template #footer>
+            <button class="small-button" @click="isEditDialogVisible = false">취소</button>
+            <button class="small-button" @click="updateInstallation">저장</button>
         </template>
     </Dialog>
 </template>
@@ -535,13 +706,20 @@ div.table-wrapper {
 
 
 input[type="text"],
-input[type="date"] {
+input[type="date"],
+select {
     padding: 0.5rem;
     border: 1px solid #ddd;
     border-radius: 0.25rem;
 }
 
-div#filter input{
+#edit-div input,
+select {
+    background-color: white;
+    width: 100%;
+}
+
+div#filter input {
     width: 100%;
 }
 

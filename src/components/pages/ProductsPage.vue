@@ -81,6 +81,7 @@ function openProductDialog(mode, product = null) {
         company_profit.value = '';
         saleCommission.value = '';
         installationCommission.value = '';
+        careCommission.value = '';
         installationTypeId.value = null;
         previousProductId.value = null;
         nextProductId.value = null;
@@ -91,6 +92,7 @@ function openProductDialog(mode, product = null) {
         company_profit.value = product.company_profit;
         saleCommission.value = product.sale_commission;
         installationCommission.value = product.installation_commission;
+        careCommission.value = product.care_commission;
         installationTypeId.value = product.installation_type_id;
         previousProductId.value = product.previous_product?.id ?? null;
         nextProductId.value = product.next_product_id;
@@ -190,6 +192,7 @@ let company_profit = ref('');
 let installationTypeId = ref('');
 let saleCommission = ref('');
 let installationCommission = ref('');
+let careCommission = ref('');
 let previousProductId = ref(null);
 let nextProductId = ref(null);
 
@@ -217,6 +220,7 @@ function addProduct() {
             installation_type_id: installationTypeId.value,
             sale_commission: parseInt(saleCommission.value),
             installation_commission: parseInt(installationCommission.value),
+            care_commission: parseInt(careCommission.value),
             previous_product_id: parseInt(previousProductId.value),
             next_product_id: parseInt(nextProductId.value)
         }),
@@ -245,6 +249,7 @@ function editProduct(id) {
             installation_type_id: installationTypeId.value,
             sale_commission: parseInt(saleCommission.value),
             installation_commission: parseInt(installationCommission.value),
+            care_commission: parseInt(careCommission.value),
             previous_product_id: previousProductId.value,
             next_product_id: nextProductId.value
         }),
@@ -293,6 +298,7 @@ function deleteProduct(id) {
                     <th>판매가</th>
                     <th>영업수당</th>
                     <th>설치수당</th>
+                    <th>케어수당</th>
                     <th>회사이익</th>
                     <th>분류</th>
                     <th>설치유형</th>
@@ -310,6 +316,7 @@ function deleteProduct(id) {
                     <td>{{ product.retail_price }}</td>
                     <td>{{ product.sale_commission }}</td>
                     <td>{{ product.installation_commission }}</td>
+                    <td>{{ product.care_commission }}</td>
                     <td>{{ product.company_profit }}</td>
                     <td>{{ product.category.name }}</td>
                     <td>{{ product.installation_type.name }}</td>
@@ -357,6 +364,9 @@ function deleteProduct(id) {
             <label for="installation_commission"> 설치 수당</label>
             <input v-model="installationCommission" type="text" pattern="[0-9]+" id="installation_commission"
                 name="installation_commission" required :disabled="editPaidAfterService">
+            <label for="care_commission"> 케어 수당</label>
+            <input v-model="careCommission" type="text" pattern="[0-9]+" id="care_commission" name="care_commission"
+                required :disabled="editPaidAfterService">
             <label for="previous_product"> 이전 단계 상품</label>
             <select v-model="previousProductId" id="previous_product">
                 <option :value="null">(없음)</option>

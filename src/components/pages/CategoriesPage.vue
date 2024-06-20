@@ -18,7 +18,8 @@ function fetchCategories() {
             alert('카테고리 정보를 가져오는데 실패했습니다.\nReason : ' + await res.text());
         } else {
             res.json().then((data) => {
-                categories.value = data.sort((a, b) => b.is_active - a.is_active);
+                categories.value = data
+                    .sort((a, b) => a.display_order - b.display_order)
             });
         }
     });
@@ -35,7 +36,8 @@ function reorderCategories(category, value) {
                 else return putBehind ? -1 : 1;
         }
         return value
-    });
+    })
+    .sort((a, b) => b.is_active - a.is_active);
     categories.value.forEach((category, index) => {
         category.display_order = index + 1;
     });
@@ -223,8 +225,8 @@ function addCategory() {
             <div>
                 <h2>{{ category.name + (category.is_active ? '' : '(삭제됨)') }}</h2>
                 <div class="category">
-                    <input type="text" pattern="[0-9]*" :value="category.display_order" @change="reorderCategories(category, $event.target.value)"
-                        style="width: 3rem;">
+                    <input type="text" pattern="[0-9]*" :value="category.display_order"
+                        @change="reorderCategories(category, $event.target.value)" style="width: 3rem;">
                     <button @click="onAddLocationClick(category.id)" class="small-button" style="margin:1rem;">카테고리 상품
                         추가</button>
                     <button @click="category.is_active ? deleteCategory(category.id) : unDeleteCategory(category.id)"

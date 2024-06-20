@@ -81,6 +81,34 @@ function editSoldProduct() {
     });
 }
 
+function editMeasurement() {
+    fetch('/api/measurement/' + measurementEdit.id, {
+        method: 'PATCH',
+        headers: {
+            'Authorization': 'Bearer ' + localStorage.getItem('authToken'),
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            width: parseInt(measurementEdit.width),
+            height: parseInt(measurementEdit.height),
+            thickness: parseInt(measurementEdit.thickness)
+        })
+    }).then(async (res) => {
+        if (!res.ok) {
+            alert('필터 사이즈를 수정하는데 실패했습니다\nReason: ' + await res.text());
+        } else {
+            alert('수정되었습니다.');
+            measurementEdit.id = undefined;
+            measurementEdit.width = '';
+            measurementEdit.height = '';
+            measurementEdit.thickness = '';
+            fetchSale();
+        }
+    }).catch((err) => {
+        console.log(err);
+    });
+}
+
 function deleteSoldProduct(id) {
     fetch('/api/sold_product/' + id, {
         method: 'DELETE',
@@ -104,6 +132,13 @@ const saleEdit = reactive({
     customer_phone: '',
     customer_address: '',
     memo: '',
+});
+
+const measurementEdit = reactive({
+    id: '',
+    width: '',
+    height: '',
+    thickness: ''
 });
 
 const isSoldProductEditDialogVisible = ref(false);
@@ -207,11 +242,29 @@ function openSoldProductEditDialog(soldProduct) {
                                 <th>카테고리</th>
                                 <th>이름</th>
                                 <th>사이즈</th>
+                                <th>수정</th>
                             </tr>
                             <tr v-for="item in sale?.measurement">
                                 <td>{{ item.measurement_type.category.name }}</td>
                                 <td>{{ item.measurement_type.name }}</td>
-                                <td>{{ item.width }} x {{ item.height }} x {{ item.thickness }}</td>
+                                <td>
+                                    <template v-if="item.id === measurementEdit.id">
+                                        <input class="small-input" pattern="[0-9]+" type="text" v-model="measurementEdit.width"> x
+                                        <input class="small-input" pattern="[0-9]+" type="text" v-model="measurementEdit.height"> x
+                                        <input class="small-input" pattern="[0-9]+" type="text" v-model="measurementEdit.thickness">
+                                    </template>
+                                    <template v-else>
+                                        {{ item.width }} x {{ item.height }} x {{ item.thickness }}
+                                    </template>
+                                </td>
+                                <td>
+                                    <button class="small-button" v-if="item.id === measurementEdit.id" @click="editMeasurement()">
+                                        저장
+                                    </button>
+                                    <button class="small-button" v-else @click="measurementEdit.id = item.id; measurementEdit.width = item.width; measurementEdit.height = item.height; measurementEdit.thickness = item.thickness;">
+                                        수정
+                                    </button>
+                                </td>
                             </tr>
                         </table>
                     </div>
@@ -271,7 +324,7 @@ th {
     padding: 8px;
 }
 
-input[type="text"] {
+input[type="text"], textarea {
     font-size: large;
 }
 
@@ -282,6 +335,10 @@ textarea {
     border: 1px solid #ddd;
     border-radius: 0.25rem;
     width: 100%;
+}
+
+.small-input {
+    width: 5rem;
 }
 
 select {
