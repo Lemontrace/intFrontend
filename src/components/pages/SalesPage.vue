@@ -1,10 +1,14 @@
 <script setup>
 import router from '@/router';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 const sales = ref([]);
 const searchKeyword = ref('');
 const filteredSales = computed(() => sales.value.filter((sale) => sale.customer_name.includes(searchKeyword.value) || sale.display_id.includes(searchKeyword.value)));
+
+watch(filteredSales, () => {
+    selected.value = [];
+})
 
 const selected = ref([]);
 
@@ -28,7 +32,7 @@ function fetchSales() {
                 data.forEach((sale) => {
                     sale.total_count = sale.sold_product.reduce((acc, product) => acc + product.count, 0);
                 })
-                selected.value = new Array(sales.value.length).fill(false);
+                selected.value = [];
             })
         }
     })
@@ -51,11 +55,11 @@ function onDeleteSale(saleId) {
     })
 }
 function onDisplayInstallationForm() {
-    if (selected.value.filter(value => value).length === 0) {
+    if (new Array(selected.value.values()).filter(value => value).length === 0) {
         alert('선택된 항목이 없습니다.');
         return;
     }
-    router.push(`/installationFormMultiPage?${sales.value.filter((_, index) => selected.value[index]).map((e) => 'id=' + encodeURIComponent(e.id)).join('&')}`);
+    router.push(`/installationFormMultiPage?${selected.value.map((id => 'id=' + encodeURIComponent(id))).join('&')}`);
 }
 </script>
 
@@ -63,10 +67,10 @@ function onDisplayInstallationForm() {
     <div style="display: flex;align-items: center;" class="page-header">
         <h1>영업 목록</h1>
         <div style="display: flex;position: absolute;right: 2%;">
-            <input type="text" v-model="searchKeyword" placeholder="고객명이나 고객번호로 검색">
+            <input type="text" style="width: 16rem;" v-model="searchKeyword" placeholder="고객명이나 고객전화번호로 검색">
             <div style="width: 16px;"></div>
             <button class="basic-button" @click="onDisplayInstallationForm()">설치
-                확인서 {{ selected.filter(value => value).length }}개 출력</button>
+                확인서 {{ selected.length }}개 출력</button>
         </div>
     </div>
     <div class="page-content">
@@ -74,7 +78,7 @@ function onDisplayInstallationForm() {
             <thead>
                 <tr>
                     <th><input type="checkbox"
-                            @change="selected = selected.map((value, index) => $event.target.checked && !sales[index].is_complete)">
+                            @change="selected = $event.target.checked ? filteredSales.filter(sale=>!sale.is_complete).map(sale=>sale.id) : []">
                     </th>
                     <th>고객번호</th>
                     <th>고객명</th>
@@ -89,8 +93,8 @@ function onDisplayInstallationForm() {
             </thead>
             <tbody>
                 <tr v-for="(entry, index) in filteredSales" :key="index">
-                    <td><input type="checkbox" @change="selected[index] = $event.target.checked"
-                            :checked="selected[index]">
+                    <td><input type="checkbox" @change="if ($event.target.checked) selected.push(entry.id); else selected = selected.filter(id => id !== entry.id)"
+                            :checked="selected.find(s=>s===entry.id)">
                     </td>
                     <td>{{ entry.display_id }}</td>
                     <td>{{ entry.customer_name }}</td>

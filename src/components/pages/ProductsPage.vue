@@ -198,7 +198,7 @@ let nextProductId = ref(null);
 
 watch(retailPrice, (value) => {
     if (editPaidAfterService.value) {
-        company_profit.value = value * 0.3;
+        company_profit.value = value;
         saleCommission.value = 0
         installationCommission.value = value * 0.7;
     }

@@ -65,7 +65,7 @@ function fetchInstalledProducts() {
                                 product.sale_commission * installed_product.sold_product.sale.seller_rank.commission_rate * installed_product.sold_product.count;
                             const saleCommissionDeduction = installed_product.sold_product.product.retail_price * installed_product.sold_product.count - installed_product.sold_product.total_amount;
                             installed_product.sale_commission = originalSaleCommission - saleCommissionDeduction;
-                            if (saleCommissionDeduction !== 0) installed_product.salePriceChanged = true;
+                            installed_product.salePriceChange = -saleCommissionDeduction;
                         }
 
                         if (installed_product.commission_override != null) installed_product.installation_commission = installed_product.commission_override
@@ -74,7 +74,7 @@ function fetchInstalledProducts() {
                                 product.installation_commission * installed_product.installation.installer_rank.commission_rate * installed_product.sold_product.count;
                             const installationCommissionDeduction = installed_product.sold_product.total_amount - installed_product.payment_amount
                             installed_product.installation_commission = originalInstallationCommission - installationCommissionDeduction;
-                            if (installationCommissionDeduction !== 0) installed_product.installationPriceChanged = true;
+                            installed_product.installationPriceChange = -installationCommissionDeduction;
                         }
 
                         installed_product.care_commission = installed_product.care_commission_override ?? product.care_commission * installed_product.sold_product.count;
@@ -388,7 +388,7 @@ function excelDownload(type) {
     <div class="page-header">
         <h1>설치 목록</h1>
         <div style="position: absolute;display: flex;right: 2%;gap: 16px;">
-            <input type="text" v-model="searchKeyword" placeholder="고객명이나 고객번호로 검색">
+            <input type="text" v-model="searchKeyword" placeholder="고객명이나 고객전화번호로 검색">
             <button @click="isFilterDialogVisible = true" class="basic-button">필터</button>
             <button @click="isExcelDownloadDialogVisible = true" class="basic-button">엑셀 다운로드</button>
 
@@ -443,8 +443,11 @@ function excelDownload(type) {
                     <td>{{ installed_product.sold_product.product.category.name }}</td>
                     <td>{{ installed_product.sold_product.count }}</td>
                     <td>{{ installed_product.original_amount }}</td>
-                    <td :class="{ 'price-changed': installed_product.salePriceChanged }">{{
-                        installed_product.sold_product.total_amount }}</td>
+                    <td :class="{
+                        'price-decreased': installed_product.salePriceChange < 0,
+                        'price-increased': installed_product.salePriceChange > 0
+                    }">
+                        {{ installed_product.sold_product.total_amount }}</td>
                     <td>{{ installed_product.sold_product.sale.memo }}</td>
                     <td>{{ installed_product.installation.installer.name }}</td>
                     <td>{{ installed_product.sold_product.product.installation_type.name }}</td>
@@ -453,7 +456,10 @@ function excelDownload(type) {
                     <td>{{ installed_product.installation.date.split('T')[0] }}</td>
                     <template v-if="installed_product.status === '완료'">
                         <td>{{ installed_product.payment_type.name }}</td>
-                        <td :class="{ 'price-changed': installed_product.installationPriceChanged }">{{
+                        <td :class="{
+                            'price-decreased': installed_product.installationPriceChange < 0,
+                            'price-increased': installed_product.installationPriceChange > 0
+                        }">{{
                             installed_product.payment_amount }}</td>
                         <td>{{ installed_product.installation.memo }}</td>
                         <td>
@@ -731,7 +737,11 @@ input:invalid {
     border-color: red;
 }
 
-.price-changed {
+.price-decreased {
     color: red;
+}
+
+.price-increased {
+    color: blue;
 }
 </style>
