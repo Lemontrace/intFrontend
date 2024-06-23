@@ -4,7 +4,9 @@ import { computed, ref, watch } from 'vue';
 
 const sales = ref([]);
 const searchKeyword = ref('');
-const filteredSales = computed(() => sales.value.filter((sale) => sale.customer_name.includes(searchKeyword.value) || sale.display_id.includes(searchKeyword.value)));
+const filteredSales = computed(() => 
+    sales.value.filter((sale) => sale.customer_name.includes(searchKeyword.value) || sale.customer_phone.includes(searchKeyword.value))
+);
 
 watch(filteredSales, () => {
     selected.value = [];
@@ -102,7 +104,7 @@ function onDisplayInstallationForm() {
                     <td>{{ entry.customer_address }}</td>
                     <td>{{ entry.seller.name }}</td>
                     <td>{{ entry.total_count }}</td>
-                    <td>{{ entry.is_new ? '신규' : entry.is_complete ? '완료' : '진행중' }}</td>
+                    <td>{{ entry.is_as ? 'AS' : entry.is_new ? '신규' : entry.is_complete ? '완료' : '진행중' }}</td>
                     <td><button class="small-button"><router-link
                                 :to="'/admin/saleEdit/' + entry.id">보기</router-link></button></td>
                     <td><button class="small-button danger-button" @click="onDeleteSale(entry.id)">삭제</button></td>
@@ -140,7 +142,7 @@ table {
 
 th,
 td {
-    border: 1px solid #ddd;
+    box-shadow: inset 0 1px 0 #ddd;
     padding: 0.5rem;
     text-align: center;
 }

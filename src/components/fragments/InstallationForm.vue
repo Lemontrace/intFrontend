@@ -100,7 +100,7 @@ fetch(`/api/sale/${props.id}`, {
                 <div class="desc">
                     1. 설치/배송/케어 서비스 완료 후 이상 없음을 확인해주세요. <br>
                     2. 새 상품의 무상 A/S 기간은 1년 입니다.<br>
-                    3. 리퍼/케어상품의 무상 A/S 기간은 리퍼(6개월)/케어(2개월)입니다.<br>
+                    3. 리퍼/케어상품의 무상 A/S 기간은 리퍼(1년)/케어(1개월)입니다.<br>
                     4. 제품 및 A/S 내용을 꼭 확인 후 서명해주세요.
                 </div>
                 <div style="text-align: center; margin-bottom: 10px;">

@@ -327,16 +327,23 @@ const excelCommonRows = [
 ]
 const excelSaleRows = [
     { name: '영업자', get: (installed_product) => installed_product.sold_product.sale.seller.name },
+    { name: '판매금액', get: (installed_product) => installed_product.original_amount},
     { name: '영업금액', get: (installed_product) => installed_product.sold_product.total_amount },
     { name: '영업메모', get: (installed_product) => installed_product.sold_product.sale.memo },
+    { name: '설치자', get: (installed_product) => installed_product.installation.installer.name },
+    { name: '설치상태', get: (installed_product) => installed_product.status },
+    { name: '설치완료일', get: (installed_product) => installed_product.installation.date.split('T')[0] },
     { name: '영업수당', get: (installed_product) => installed_product.sale_commission },
+
 ]
 const excelInstallRows = [
+    { name: '영업자', get: (installed_product) => installed_product.sold_product.sale.seller.name },
+    { name: '영업금액', get: (installed_product) => installed_product.sold_product.total_amount },
     { name: '설치자', get: (installed_product) => installed_product.installation.installer.name },
     { name: '설치상태', get: (installed_product) => installed_product.status },
     { name: '보류/취소사유', get: (installed_product) => installed_product.status_reason },
     { name: '설치완료일', get: (installed_product) => installed_product.installation.date.split('T')[0] },
-    { name: '결제유형', get: (installed_product) => installed_product.payment_type },
+    { name: '결제유형', get: (installed_product) => installed_product.payment_type?.name },
     { name: '결제금액', get: (installed_product) => installed_product.payment_amount },
     { name: '설치메모', get: (installed_product) => installed_product.installation.memo },
     { name: '설치수당', get: (installed_product) => installed_product.installation_commission },
@@ -363,10 +370,22 @@ function excelDownload(type) {
         worksheet = workbook.addWorksheet('영업 목록');
 
     let rows = excelCommonRows
-    if (type !== '설치') rows.concat(excelSaleRows);
-    if (type !== '영업') rows = rows.concat(excelInstallRows);
+    if (type === '영업') rows = rows.concat(excelSaleRows);
+    if (type === '설치') rows = rows.concat(excelInstallRows);
+    if (type === '어드민') {
+        rows = rows.concat(excelSaleRows,excelInstallRows,excelAdminRows)
+        const included = []
+        const newRows = []
+        for (const row of rows) {
+            if (included.includes(row.name)) continue
+            else {
+                included.push(row.name)
+                newRows.push(row)
+            }
+        }
+        rows = newRows
+    }
     rows = rows.concat(excelCommonRows2);
-    if (type === '어드민') rows = rows.concat(excelAdminRows);
 
     const headers = ['순번'].concat(rows.map((row) => row.name));
 
@@ -399,8 +418,8 @@ function excelDownload(type) {
             <thead>
                 <tr>
                     <th>순번</th>
-                    <th style="width: 6rem;">고객번호</th>
-                    <th>고객명</th>
+                    <th style="width: 6rem;left:0;z-index: 2;">고객번호</th>
+                    <th style="left:6rem;z-index: 2;">고객명</th>
                     <th style="width: 8rem;">연락번호</th>
                     <th>영업자</th>
                     <th style="width: 6rem;">품명</th>
@@ -432,11 +451,11 @@ function excelDownload(type) {
             <tbody>
                 <tr v-for="(installed_product, index) in installed_products.filter(filterInstalledProduct).filter(
                     (installed_product) => installed_product.sold_product.sale.customer_name.includes(searchKeyword) ||
-                        installed_product.sold_product.sale.display_id.toString().includes(searchKeyword)
+                        installed_product.sold_product.sale.customer_phone.includes(searchKeyword)
                 )">
                     <td>{{ index + 1 }}</td>
-                    <td>{{ installed_product.sold_product.sale.display_id }}</td>
-                    <td>{{ installed_product.sold_product.sale.customer_name }}</td>
+                    <td style="position: sticky;background-color: white;left: 0;z-index: 1;">{{ installed_product.sold_product.sale.display_id }}</td>
+                    <td style="position: sticky;background-color: white;left: 6rem;z-index: 1;">{{ installed_product.sold_product.sale.customer_name }}</td>
                     <td>{{ installed_product.sold_product.sale.customer_phone }}</td>
                     <td>{{ installed_product.sold_product.sale.seller.name }}</td>
                     <td>{{ installed_product.sold_product.product.name }}</td>
@@ -470,9 +489,9 @@ function excelDownload(type) {
                             </button>
                         </td>
                         <td>
-                            <template v-if="installed_product.sale_commission_edit_state === 'view'">
+                            <span :class="{'commission-overriden': installed_product.sold_product.commission_override != null}" v-if="installed_product.sale_commission_edit_state === 'view'">
                                 {{ installed_product.sale_commission }}
-                            </template>
+                            </span>
                             <template v-else>
                                 <input pattern="-{0,1}[0-9]+" style="width: 10em;" type="text"
                                     v-model="installed_product.sale_commission_edit_value">
@@ -495,9 +514,9 @@ function excelDownload(type) {
                             </button>
                         </td>
                         <td>
-                            <template v-if="installed_product.installation_commission_edit_state === 'view'">
+                            <span :class="{'commission-overriden': installed_product.commission_override != null}" v-if="installed_product.installation_commission_edit_state === 'view'">
                                 {{ installed_product.installation_commission }}
-                            </template>
+                            </span>
                             <template v-else>
                                 <input pattern="-{0,1}[0-9]+" style="width: 10em;" type="text"
                                     v-model="installed_product.installation_commission_edit_value">
@@ -692,7 +711,7 @@ table {
 
 th,
 td {
-    border: 1px solid #ddd;
+    box-shadow: inset 0 1px 0 #ddd;
     padding: 0.5rem;
     text-align: center;
     text-wrap: wrap;
@@ -702,6 +721,7 @@ td {
 
 th {
     position: sticky;
+    z-index: 1;
     top: 0;
     background-color: white;
 }
@@ -743,5 +763,9 @@ input:invalid {
 
 .price-increased {
     color: blue;
+}
+
+.commission-overriden {
+    color: darkgreen
 }
 </style>
