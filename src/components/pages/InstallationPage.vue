@@ -93,6 +93,8 @@ function fetchInstalledProducts() {
                         installed_product.installation_commission_edit_value = originalIP.installation_commission_edit_value;
                         installed_product.company_profit_edit_state = originalIP.company_profit_edit_state;
                         installed_product.company_profit_edit_value = originalIP.company_profit_edit_value;
+                        installed_product.care_commission_edit_state = originalIP.care_commission_edit_state;
+                        installed_product.care_commission_edit_value = originalIP.care_commission_edit_value;
                     } else {
                         installed_product.sale_commission_edit_state = 'view';
                         installed_product.sale_commission_edit_value = '';
@@ -100,6 +102,8 @@ function fetchInstalledProducts() {
                         installed_product.installation_commission_edit_value = '';
                         installed_product.company_profit_edit_state = 'view';
                         installed_product.company_profit_edit_value = '';
+                        installed_product.care_commission_edit_state = 'view';
+                        installed_product.care_commission_edit_value = '';
                     }
                 });
             });
@@ -179,6 +183,25 @@ function updateCompanyProfitOverride(installedProductId, companyProfitOverride) 
     }).then(async (res) => {
         if (!res.ok) {
             alert('회사 이익을 업데이트하는데 실패했습니다.\nReason : ' + await res.text());
+        } else {
+            fetchInstalledProducts();
+        }
+    });
+}
+
+function updateCareCommissionOverride(installedProductId, careCommissionOverride) {
+    fetch('/api/installed_product/' + installedProductId, {
+        method: 'PATCH',
+        headers: {
+            'Authorization': 'Bearer ' + localStorage.getItem('authToken'),
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            care_commission_override: parseInt(careCommissionOverride),
+        })
+    }).then(async (res) => {
+        if (!res.ok) {
+            alert('케어수당을 업데이트하는데 실패했습니다.\nReason : ' + await res.text());
         } else {
             fetchInstalledProducts();
         }
@@ -332,7 +355,7 @@ const excelSaleRows = [
     { name: '영업메모', get: (installed_product) => installed_product.sold_product.sale.memo },
     { name: '설치자', get: (installed_product) => installed_product.installation.installer.name },
     { name: '설치상태', get: (installed_product) => installed_product.status },
-    { name: '설치완료일', get: (installed_product) => installed_product.installation.date.split('T')[0] },
+    { name: '설치완료일', get: (installed_product) => installed_product.date?.split('T')[0] },
     { name: '영업수당', get: (installed_product) => installed_product.sale_commission },
 
 ]
@@ -472,7 +495,7 @@ function excelDownload(type) {
                     <td>{{ installed_product.sold_product.product.installation_type.name }}</td>
                     <td>{{ installed_product.status }}</td>
                     <td>{{ installed_product.status_reason }}</td>
-                    <td>{{ installed_product.installation.date.split('T')[0] }}</td>
+                    <td>{{ installed_product.date?.split('T')[0] }}</td>
                     <template v-if="installed_product.status === '완료'">
                         <td>{{ installed_product.payment_type.name }}</td>
                         <td :class="{
@@ -539,7 +562,29 @@ function excelDownload(type) {
                             </button>
                         </td>
                         <td>
-                            {{ installed_product.care_commission }}
+                            <span :class = "{'commission-overriden': installed_product.care_commission_override != null}" v-if="installed_product.care_commission_edit_state === 'view'">
+                                {{ installed_product.care_commission }}
+                            </span>
+                            <template v-else>
+                                <input pattern="-{0,1}[0-9]+" style="width: 10em;" type="text"
+                                    v-model="installed_product.care_commission_edit_value">
+                            </template>
+                            <br>
+                            <button class="small-button" @click="
+                            if (installed_product.care_commission_override !== null) {
+                                updateCareCommissionOverride(installed_product.id, null)
+                                installed_product.care_commission_edit_value = '';
+                            } else {
+                                if (installed_product.care_commission_edit_state === 'edit') {
+                                    updateCareCommissionOverride(installed_product.id, installed_product.care_commission_edit_value);
+                                }
+                                installed_product.care_commission_edit_state = installed_product.care_commission_edit_state === 'view' ? 'edit' : 'view';
+                            }
+                                ">
+                                {{ installed_product.care_commission_override !== null ? '초기화' :
+                                    installed_product.care_commission_edit_state ===
+                                        'view' ? '수정' : '저장' }}
+                            </button>
                         </td>
 
                         <td>

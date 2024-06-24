@@ -438,7 +438,7 @@ table {
 
 th,
 td {
-    border: 1px solid #ddd;
+    box-shadow: inset 0 1px 0 #ddd;
     padding: 0.5rem;
     text-align: center;
 }
