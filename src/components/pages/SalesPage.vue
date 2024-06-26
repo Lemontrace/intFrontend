@@ -15,7 +15,7 @@ watch(filteredSales, () => {
 })
 
 watch(searchKeyword, () => {
-    history.replaceState(null, '', '/admin/sales?search=' + encodeURIComponent(searchKeyword.value));
+    history.replaceState(history.state, '', '/admin/sales?search=' + encodeURIComponent(searchKeyword.value));
 })
 
 const selected = ref([]);
