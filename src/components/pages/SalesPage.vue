@@ -12,6 +12,10 @@ watch(filteredSales, () => {
     selected.value = [];
 })
 
+watch(searchKeyword, () => {
+    history.replaceState(null, '', '/admin/sales?search=' + encodeURIComponent(searchKeyword.value));
+})
+
 const selected = ref([]);
 
 function fetchSales() {
