@@ -66,6 +66,7 @@ async function fetchInstallationDocumentList() {
 
     installationDocumentList.value = await Promise.all(promises);
 }
+fetchInstallationDocumentList();
 
 function editSale() {
     fetch('/api/sale/' + $route.params.saleId, {
