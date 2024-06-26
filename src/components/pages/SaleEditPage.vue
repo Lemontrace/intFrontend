@@ -51,7 +51,8 @@ async function fetchInstallationDocumentList() {
     }).then(res => res.json())
 
     const promises = installations.map(async (installation) => {
-        const documents = await fetch('/api/installation_document_list/' + installation.id, {
+        const documents = await fetch('/api/installation_document_list?installation_id=' 
+        + encodeURIComponent(installation.id), {
             method: 'GET',
             headers: {
                 'Authorization': 'Bearer ' + localStorage.getItem('authToken'),
