@@ -512,7 +512,7 @@ function excelDownload(type) {
                             </button>
                         </td>
                         <td>
-                            <span :class="{'commission-overriden': installed_product.sold_product.commission_override != null}" v-if="installed_product.sale_commission_edit_state === 'view'">
+                            <span :class="{'commission-when-price-changed': installed_product.installationPriceChange !=0 || installed_product.salePriceChange !=0}" v-if="installed_product.sale_commission_edit_state === 'view'">
                                 {{ installed_product.sale_commission }}
                             </span>
                             <template v-else>
@@ -537,7 +537,7 @@ function excelDownload(type) {
                             </button>
                         </td>
                         <td>
-                            <span :class="{'commission-overriden': installed_product.commission_override != null}" v-if="installed_product.installation_commission_edit_state === 'view'">
+                            <span :class="{'commission-when-price-changed': installed_product.installationPriceChange !=0 || installed_product.salePriceChange !=0}" v-if="installed_product.installation_commission_edit_state === 'view'">
                                 {{ installed_product.installation_commission }}
                             </span>
                             <template v-else>
@@ -562,7 +562,7 @@ function excelDownload(type) {
                             </button>
                         </td>
                         <td>
-                            <span :class = "{'commission-overriden': installed_product.care_commission_override != null}" v-if="installed_product.care_commission_edit_state === 'view'">
+                            <span v-if="installed_product.care_commission_edit_state === 'view'">
                                 {{ installed_product.care_commission }}
                             </span>
                             <template v-else>
@@ -810,7 +810,7 @@ input:invalid {
     color: blue;
 }
 
-.commission-overriden {
+.commission-when-price-changed {
     color: darkgreen
 }
 </style>
