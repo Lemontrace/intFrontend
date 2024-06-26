@@ -1,5 +1,6 @@
 <script setup>
 import { reactive, ref } from 'vue';
+import { useRoute } from 'vue-router';
 import Dialog from 'primevue/dialog';
 import VueDatePicker from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css'
@@ -32,7 +33,12 @@ function filterInstalledProduct(installedProduct) {
     return true;
 }
 
-const searchKeyword = ref('');
+const route = useRoute();
+const searchKeyword = ref(route.query.search || '');
+
+watch(searchKeyword, () => {
+    history.replaceState(null, '', '/admin/installations?search=' + encodeURIComponent(searchKeyword.value));
+})
 
 const installed_products = ref([]);
 
@@ -350,7 +356,7 @@ const excelCommonRows = [
 ]
 const excelSaleRows = [
     { name: '영업자', get: (installed_product) => installed_product.sold_product.sale.seller.name },
-    { name: '판매금액', get: (installed_product) => installed_product.original_amount},
+    { name: '판매금액', get: (installed_product) => installed_product.original_amount },
     { name: '영업금액', get: (installed_product) => installed_product.sold_product.total_amount },
     { name: '영업메모', get: (installed_product) => installed_product.sold_product.sale.memo },
     { name: '설치자', get: (installed_product) => installed_product.installation.installer.name },
@@ -396,7 +402,7 @@ function excelDownload(type) {
     if (type === '영업') rows = rows.concat(excelSaleRows);
     if (type === '설치') rows = rows.concat(excelInstallRows);
     if (type === '어드민') {
-        rows = rows.concat(excelSaleRows,excelInstallRows,excelAdminRows)
+        rows = rows.concat(excelSaleRows, excelInstallRows, excelAdminRows)
         const included = []
         const newRows = []
         for (const row of rows) {
@@ -473,12 +479,14 @@ function excelDownload(type) {
             </thead>
             <tbody>
                 <tr v-for="(installed_product, index) in installed_products.filter(filterInstalledProduct).filter(
-                    (installed_product) => installed_product.sold_product.sale.customer_name.includes(searchKeyword) ||
-                        installed_product.sold_product.sale.customer_phone.includes(searchKeyword)
-                )">
+                                    (installed_product) => installed_product.sold_product.sale.customer_name.includes(searchKeyword) ||
+                                        installed_product.sold_product.sale.customer_phone.includes(searchKeyword)
+                                )">
                     <td>{{ index + 1 }}</td>
-                    <td style="position: sticky;background-color: white;left: 0;z-index: 1;">{{ installed_product.sold_product.sale.display_id }}</td>
-                    <td style="position: sticky;background-color: white;left: 6rem;z-index: 1;">{{ installed_product.sold_product.sale.customer_name }}</td>
+                    <td style="position: sticky;background-color: white;left: 0;z-index: 1;">{{
+                        installed_product.sold_product.sale.display_id }}</td>
+                    <td style="position: sticky;background-color: white;left: 6rem;z-index: 1;">{{
+                        installed_product.sold_product.sale.customer_name }}</td>
                     <td>{{ installed_product.sold_product.sale.customer_phone }}</td>
                     <td>{{ installed_product.sold_product.sale.seller.name }}</td>
                     <td>{{ installed_product.sold_product.product.name }}</td>
@@ -502,7 +510,7 @@ function excelDownload(type) {
                             'price-decreased': installed_product.installationPriceChange < 0,
                             'price-increased': installed_product.installationPriceChange > 0
                         }">{{
-                            installed_product.payment_amount }}</td>
+    installed_product.payment_amount }}</td>
                         <td>{{ installed_product.installation.memo }}</td>
                         <td>
                             <button class="small-button" @click="installed_product.payment_arrival_date ?
@@ -512,7 +520,9 @@ function excelDownload(type) {
                             </button>
                         </td>
                         <td>
-                            <span :class="{'commission-when-price-changed': installed_product.installationPriceChange !=0 || installed_product.salePriceChange !=0}" v-if="installed_product.sale_commission_edit_state === 'view'">
+                            <span
+                                :class="{ 'commission-when-price-changed': installed_product.installationPriceChange != 0 || installed_product.salePriceChange != 0 }"
+                                v-if="installed_product.sale_commission_edit_state === 'view'">
                                 {{ installed_product.sale_commission }}
                             </span>
                             <template v-else>
@@ -521,7 +531,7 @@ function excelDownload(type) {
                             </template>
                             <br>
                             <button class="small-button" @click="
-                            if (installed_product.sold_product.commission_override !== null) {
+                                                                                    if (installed_product.sold_product.commission_override !== null) {
                                 updateSaleCommissionOverride(installed_product.sold_product.id, null)
                                 installed_product.sale_commission_edit_value = '';
                             } else {
@@ -532,12 +542,14 @@ function excelDownload(type) {
                             }
                                 ">
                                 {{ installed_product.sold_product.commission_override !== null ? '초기화' :
-                                    installed_product.sale_commission_edit_state ===
-                                        'view' ? '수정' : '저장' }}
+                                        installed_product.sale_commission_edit_state ===
+                                            'view' ? '수정' : '저장' }}
                             </button>
                         </td>
                         <td>
-                            <span :class="{'commission-when-price-changed': installed_product.installationPriceChange !=0 || installed_product.salePriceChange !=0}" v-if="installed_product.installation_commission_edit_state === 'view'">
+                            <span
+                                :class="{ 'commission-when-price-changed': installed_product.installationPriceChange != 0 || installed_product.salePriceChange != 0 }"
+                                v-if="installed_product.installation_commission_edit_state === 'view'">
                                 {{ installed_product.installation_commission }}
                             </span>
                             <template v-else>
@@ -546,19 +558,19 @@ function excelDownload(type) {
                             </template>
                             <br>
                             <button class="small-button" @click="
-                            if (installed_product.commission_override !== null) {
-                                updateInstallationCommissionOverride(installed_product.id, null)
-                                installed_product.installation_commission_edit_value = '';
-                            } else {
-                                if (installed_product.installation_commission_edit_state === 'edit') {
-                                    updateInstallationCommissionOverride(installed_product.id, installed_product.installation_commission_edit_value);
+                                                                                    if (installed_product.commission_override !== null) {
+                                    updateInstallationCommissionOverride(installed_product.id, null)
+                                    installed_product.installation_commission_edit_value = '';
+                                } else {
+                                    if (installed_product.installation_commission_edit_state === 'edit') {
+                                        updateInstallationCommissionOverride(installed_product.id, installed_product.installation_commission_edit_value);
+                                    }
+                                    installed_product.installation_commission_edit_state = installed_product.installation_commission_edit_state === 'view' ? 'edit' : 'view';
                                 }
-                                installed_product.installation_commission_edit_state = installed_product.installation_commission_edit_state === 'view' ? 'edit' : 'view';
-                            }
-                                ">
+                                    ">
                                 {{ installed_product.commission_override !== null ? '초기화' :
-                                    installed_product.installation_commission_edit_state ===
-                                        'view' ? '수정' : '저장' }}
+                                            installed_product.installation_commission_edit_state ===
+                                                'view' ? '수정' : '저장' }}
                             </button>
                         </td>
                         <td>
@@ -571,26 +583,27 @@ function excelDownload(type) {
                             </template>
                             <br>
                             <button class="small-button" @click="
-                            if (installed_product.care_commission_override !== null) {
-                                updateCareCommissionOverride(installed_product.id, null)
-                                installed_product.care_commission_edit_value = '';
-                            } else {
-                                if (installed_product.care_commission_edit_state === 'edit') {
-                                    updateCareCommissionOverride(installed_product.id, installed_product.care_commission_edit_value);
-                                }
-                                installed_product.care_commission_edit_state = installed_product.care_commission_edit_state === 'view' ? 'edit' : 'view';
-                            }
-                                ">
+                                                                                    if (installed_product.care_commission_override !== null) {
+                                        updateCareCommissionOverride(installed_product.id, null)
+                                        installed_product.care_commission_edit_value = '';
+                                    } else {
+                                        if (installed_product.care_commission_edit_state === 'edit') {
+                                            updateCareCommissionOverride(installed_product.id, installed_product.care_commission_edit_value);
+                                        }
+                                        installed_product.care_commission_edit_state = installed_product.care_commission_edit_state === 'view' ? 'edit' : 'view';
+                                    }
+                                        ">
                                 {{ installed_product.care_commission_override !== null ? '초기화' :
-                                    installed_product.care_commission_edit_state ===
-                                        'view' ? '수정' : '저장' }}
+                                                installed_product.care_commission_edit_state ===
+                                                    'view' ? '수정' : '저장' }}
                             </button>
                         </td>
 
                         <td>
-                            <button class="small-button" @click="installed_product.commission_payment_date ?
-                                updateCommissionPaymentDate(installed_product.id, null)
-                                : openDatePicker((date) => updateCommissionPaymentDate(installed_product.id, date))">
+                            <button class="small-button"
+                                @click="installed_product.commission_payment_date ?
+                                                updateCommissionPaymentDate(installed_product.id, null)
+                                                : openDatePicker((date) => updateCommissionPaymentDate(installed_product.id, date))">
                                 {{ installed_product.commission_payment_date?.split('T')[0] ?? '선택' }}
                             </button>
                         </td>
@@ -604,24 +617,24 @@ function excelDownload(type) {
                             </template>
                             <br>
                             <button class="small-button" @click="
-                            if (installed_product.company_profit_override !== null) {
-                                updateCompanyProfitOverride(installed_product.id, null)
-                                installed_product.company_profit_edit_value = '';
-                            } else {
-                                if (installed_product.company_profit_edit_state === 'edit') {
-                                    updateCompanyProfitOverride(installed_product.id, installed_product.company_profit_edit_value);
-                                }
-                                installed_product.company_profit_edit_state = installed_product.company_profit_edit_state === 'view' ? 'edit' : 'view';
-                            }
-                                ">
+                                                                                    if (installed_product.company_profit_override !== null) {
+                                            updateCompanyProfitOverride(installed_product.id, null)
+                                            installed_product.company_profit_edit_value = '';
+                                        } else {
+                                            if (installed_product.company_profit_edit_state === 'edit') {
+                                                updateCompanyProfitOverride(installed_product.id, installed_product.company_profit_edit_value);
+                                            }
+                                            installed_product.company_profit_edit_state = installed_product.company_profit_edit_state === 'view' ? 'edit' : 'view';
+                                        }
+                                            ">
                                 {{ installed_product.company_profit_override !== null ? '초기화' :
-                                    installed_product.company_profit_edit_state ===
-                                        'view' ? '수정' : '저장' }}
+                                                    installed_product.company_profit_edit_state ===
+                                                        'view' ? '수정' : '저장' }}
                             </button>
 
                         </td>
-                        <td><button class="small-button"
-                                @click="openSettlementMemoDialog(installed_product)">정산메모</button></td>
+                        <td><button class="small-button" @click="openSettlementMemoDialog(installed_product)">정산메모</button>
+                        </td>
                         <td>{{ installed_product.pure_profit }}</td>
                     </template>
                     <template v-else>
@@ -650,8 +663,7 @@ function excelDownload(type) {
         :enable-time-picker="false" locale="ko-KR" @date-update="d => date = d.toISOString().split('T')[0]">
         <template #action-row>
             <div style="width: 100%;display:flex;justify-content: end;">
-                <button class="small-button"
-                    @click="datepicker.closeMenu(); onPickFunction(date); date = ''">선택</button>
+                <button class="small-button" @click="datepicker.closeMenu(); onPickFunction(date); date = ''">선택</button>
             </div>
         </template>
     </VueDatePicker>

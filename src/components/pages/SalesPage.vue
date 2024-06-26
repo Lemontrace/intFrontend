@@ -1,9 +1,11 @@
 <script setup>
 import router from '@/router';
+import { useRoute } from 'vue-router';
 import { computed, ref, watch } from 'vue';
 
 const sales = ref([]);
-const searchKeyword = ref('');
+const route = useRoute();
+const searchKeyword = ref(route.query.search || '');
 const filteredSales = computed(() => 
     sales.value.filter((sale) => sale.customer_name.includes(searchKeyword.value) || sale.customer_phone.includes(searchKeyword.value))
 );
