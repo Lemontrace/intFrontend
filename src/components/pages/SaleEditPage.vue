@@ -309,7 +309,7 @@ function openSoldProductEditDialog(soldProduct) {
                     <th>다운로드</th>
                 </tr>
                 <tr v-for="item in installationDocumentList">
-                    <td>{{ item.installer.name }}</td>
+                    <td>{{ item.installer_name }}</td>
                     <td>{{ item.install_date }}</td>
                     <td>{{ item.installation_document.length }}</td>
                     <td><button class="small-button">다운로드</button></td>
