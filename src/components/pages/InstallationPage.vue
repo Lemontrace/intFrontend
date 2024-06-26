@@ -37,7 +37,7 @@ const route = useRoute();
 const searchKeyword = ref(route.query.search || '');
 
 watch(searchKeyword, () => {
-    history.replaceState(history.state, '', '/admin/installations?search=' + encodeURIComponent(searchKeyword.value));
+    router.replace({ path: '/admin/installations', query: { search: searchKeyword.value } });
 })
 
 const installed_products = ref([]);

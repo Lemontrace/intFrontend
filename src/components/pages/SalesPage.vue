@@ -15,7 +15,7 @@ watch(filteredSales, () => {
 })
 
 watch(searchKeyword, () => {
-    history.replaceState(history.state, '', '/admin/sales?search=' + encodeURIComponent(searchKeyword.value));
+    router.replace( { path: '/admin/sales', query: { search: searchKeyword.value } });
 })
 
 const selected = ref([]);
