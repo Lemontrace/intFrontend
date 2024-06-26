@@ -41,6 +41,32 @@ function fetchProducts() {
 }
 fetchProducts();
 
+const installationDocumentList = ref([]);
+async function fetchInstallationDocumentList() {
+    const installations = await fetch('/api/sale/' + $route.params.saleId + '/installation', {
+        method: 'GET',
+        headers: {
+            'Authorization': 'Bearer ' + localStorage.getItem('authToken'),
+        }
+    }).then(res => res.json())
+
+    const promises = installations.map(async (installation) => {
+        const documents = await fetch('/api/installation_document_list/' + installation.id, {
+            method: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + localStorage.getItem('authToken'),
+            }
+        }).then(res => res.json());
+        return {
+            installer_name: installation.installer.name,
+            install_date: installation.date,
+            installation_document: documents
+        }
+    });
+
+    installationDocumentList.value = await Promise.all(promises);
+}
+
 function editSale() {
     fetch('/api/sale/' + $route.params.saleId, {
         method: 'PATCH',
@@ -164,7 +190,7 @@ function openSoldProductEditDialog(soldProduct) {
 
 <template>
     <div class="page-header">
-        <h1>영업수정</h1>
+        <h1>영업상세</h1>
         <div class="button-div">
         </div>
     </div>
@@ -270,6 +296,23 @@ function openSoldProductEditDialog(soldProduct) {
                     </div>
                 </div>
             </div>
+        </div>
+        <div>
+            <h2>설치 문서</h2>
+            <table>
+                <tr>
+                    <th>설치자명</th>
+                    <th>설치일</th>
+                    <th>문서 수</th>
+                    <th>다운로드</th>
+                </tr>
+                <tr v-for="item in installationDocumentList">
+                    <td>{{ item.installer.name }}</td>
+                    <td>{{ item.install_date }}</td>
+                    <td>{{ item.installation_document.length }}</td>
+                    <td><button class="small-button">다운로드</button></td>
+                </tr>
+            </table>
         </div>
     </div>
 
