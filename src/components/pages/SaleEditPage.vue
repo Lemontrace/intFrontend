@@ -60,6 +60,7 @@ async function fetchInstallationDocumentList() {
             }
         }).then(res => res.json());
         return {
+            installation_id: installation.id,
             installer_name: installation.installer.name,
             install_date: installation.date.split('T')[0],
             installation_document: documents
