@@ -338,7 +338,7 @@ function openSoldProductEditDialog(soldProduct) {
                     <td>{{ item.install_date }}</td>
                     <td>{{ item.installation_document.length }}</td>
                     <td><button class="small-button" @click="
-                        item.installation_document.forEach((doc) => downloadInstallationDocument(item.id, doc))
+                        item.installation_document.forEach((doc) => downloadInstallationDocument(item.installation_id, doc))
                         ">다운로드</button></td>
                 </tr>
             </table>
