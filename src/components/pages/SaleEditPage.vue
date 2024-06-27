@@ -164,12 +164,9 @@ function downloadInstallationDocument(installation_id, fileName) {
             'Authorization': 'Bearer ' + localStorage.getItem('authToken'),
         }
     }).then(async (res) => {
-        if (!res.ok) {
-            alert('설치 문서를 다운로드하는데 실패했습니다\nReason: ' + await res.text());
-        } else {
+        if (res.ok) {
             const blob = await res.blob();
             saveAs(blob, fileName);
-            alert('다운로드 되었습니다.');
         }
     }).catch((err) => {
         console.log(err);
