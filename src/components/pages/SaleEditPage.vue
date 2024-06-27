@@ -1,6 +1,7 @@
 <script setup>
 import { reactive, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { saveAs } from 'file-saver';
 
 import Dialog from 'primevue/dialog';
 let sale = ref(null);
@@ -51,8 +52,8 @@ async function fetchInstallationDocumentList() {
     }).then(res => res.json())
 
     const promises = installations.map(async (installation) => {
-        const documents = await fetch('/api/installation_document_list?installation_id=' 
-        + encodeURIComponent(installation.id), {
+        const documents = await fetch('/api/installation_document_list?installation_id='
+            + encodeURIComponent(installation.id), {
             method: 'GET',
             headers: {
                 'Authorization': 'Bearer ' + localStorage.getItem('authToken'),
@@ -155,6 +156,25 @@ function deleteSoldProduct(id) {
     });
 }
 
+function downloadInstallationDocument(installation_id, fileName) {
+    fetch('/api/installation_document/' + installation_id + fileName, {
+        method: 'GET',
+        headers: {
+            'Authorization': 'Bearer ' + localStorage.getItem('authToken'),
+        }
+    }).then(async (res) => {
+        if (!res.ok) {
+            alert('설치 문서를 다운로드하는데 실패했습니다\nReason: ' + await res.text());
+        } else {
+            const blob = await res.blob();
+            saveAs(blob, fileName);
+            alert('다운로드 되었습니다.');
+        }
+    }).catch((err) => {
+        console.log(err);
+    });
+}
+
 const saleEdit = reactive({
     customer_name: '',
     customer_phone: '',
@@ -220,8 +240,7 @@ function openSoldProductEditDialog(soldProduct) {
                         </tr>
                         <tr>
                             <td>메모 : </td>
-                            <td><textarea style="resize: none; width:100%;height: 5rem;"
-                                    v-model="saleEdit.memo"></textarea>
+                            <td><textarea style="resize: none; width:100%;height: 5rem;" v-model="saleEdit.memo"></textarea>
                             </td>
                         </tr>
 
@@ -257,8 +276,8 @@ function openSoldProductEditDialog(soldProduct) {
                             <td>{{ item.total_amount }}</td>
                             <td>{{ item.is_new ? "신규" : item.is_complete ? "완료" : "진행중" }}</td>
                             <td><button class="small-button" @click="openSoldProductEditDialog(item)">수정</button></td>
-                            <td><button class="small-button danger-button"
-                                    @click="deleteSoldProduct(item.id)">삭제</button></td>
+                            <td><button class="small-button danger-button" @click="deleteSoldProduct(item.id)">삭제</button>
+                            </td>
                         </tr>
                     </table>
                 </div>
@@ -277,19 +296,24 @@ function openSoldProductEditDialog(soldProduct) {
                                 <td>{{ item.measurement_type.name }}</td>
                                 <td>
                                     <template v-if="item.id === measurementEdit.id">
-                                        <input class="small-input" pattern="[0-9]+" type="text" v-model="measurementEdit.width"> x
-                                        <input class="small-input" pattern="[0-9]+" type="text" v-model="measurementEdit.height"> x
-                                        <input class="small-input" pattern="[0-9]+" type="text" v-model="measurementEdit.thickness">
+                                        <input class="small-input" pattern="[0-9]+" type="text"
+                                            v-model="measurementEdit.width"> x
+                                        <input class="small-input" pattern="[0-9]+" type="text"
+                                            v-model="measurementEdit.height"> x
+                                        <input class="small-input" pattern="[0-9]+" type="text"
+                                            v-model="measurementEdit.thickness">
                                     </template>
                                     <template v-else>
                                         {{ item.width }} x {{ item.height }} x {{ item.thickness }}
                                     </template>
                                 </td>
                                 <td>
-                                    <button class="small-button" v-if="item.id === measurementEdit.id" @click="editMeasurement()">
+                                    <button class="small-button" v-if="item.id === measurementEdit.id"
+                                        @click="editMeasurement()">
                                         저장
                                     </button>
-                                    <button class="small-button" v-else @click="measurementEdit.id = item.id; measurementEdit.width = item.width; measurementEdit.height = item.height; measurementEdit.thickness = item.thickness;">
+                                    <button class="small-button" v-else
+                                        @click="measurementEdit.id = item.id; measurementEdit.width = item.width; measurementEdit.height = item.height; measurementEdit.thickness = item.thickness;">
                                         수정
                                     </button>
                                 </td>
@@ -312,7 +336,9 @@ function openSoldProductEditDialog(soldProduct) {
                     <td>{{ item.installer_name }}</td>
                     <td>{{ item.install_date }}</td>
                     <td>{{ item.installation_document.length }}</td>
-                    <td><button class="small-button">다운로드</button></td>
+                    <td><button class="small-button" @click="
+                        item.installation_document.forEach((doc) => downloadInstallationDocument(item.id, doc))
+                        ">다운로드</button></td>
                 </tr>
             </table>
         </div>
@@ -351,7 +377,6 @@ function openSoldProductEditDialog(soldProduct) {
             <button class="small-button" @click="isSoldProductEditDialogVisible = false; editSoldProduct()">수정</button>
         </template>
     </Dialog>
-
 </template>
 
 <style scoped>
@@ -369,7 +394,8 @@ th {
     padding: 8px;
 }
 
-input[type="text"], textarea {
+input[type="text"],
+textarea {
     font-size: large;
 }
 
@@ -388,5 +414,4 @@ textarea {
 
 select {
     background-color: white;
-}
-</style>
+}</style>
