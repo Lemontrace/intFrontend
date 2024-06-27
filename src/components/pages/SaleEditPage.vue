@@ -158,7 +158,7 @@ function deleteSoldProduct(id) {
 }
 
 function downloadInstallationDocument(installation_id, fileName) {
-    fetch('/api/installation_document/' + installation_id + fileName, {
+    fetch(`/api/installation_document?installation_id=${encodeURIComponent(installation_id)}&filename=${encodeURIComponent(fileName)}`, {
         method: 'GET',
         headers: {
             'Authorization': 'Bearer ' + localStorage.getItem('authToken'),
@@ -324,7 +324,7 @@ function openSoldProductEditDialog(soldProduct) {
                 </div>
             </div>
         </div>
-        <div>
+        <div style="margin-left: 2rem;">
             <h2>설치 문서</h2>
             <table>
                 <tr>
