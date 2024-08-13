@@ -23,7 +23,7 @@ const filter = reactive({
     only_completed: false,
 })
 
-watch(filter.install_end_date, () => {
+watch(filter, () => {
     console.log(filter.install_end_date)
 })
 
