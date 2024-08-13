@@ -28,8 +28,8 @@ function filterInstalledProduct(installedProduct) {
     if (filter.installer && installedProduct.installation.installer.name !== filter.installer) return false;
     if (filter.sale_start_date && installedProduct.sold_product.sale.date < filter.sale_start_date) return false;
     if (filter.sale_end_date && installedProduct.sold_product.sale.date > filter.sale_end_date) return false;
-    if (filter.install_start_date && installedProduct.installation.date < filter.install_start_date) return false;
-    if (filter.install_end_date && installedProduct.installation.date > filter.install_end_date) return false;
+    if (filter.install_start_date && installedProduct.date < filter.install_start_date) return false;
+    if (filter.install_end_date && installedProduct.date > filter.install_end_date) return false;
     if (filter.only_completed && installedProduct.status !== '완료') return false;
     return true;
 }
