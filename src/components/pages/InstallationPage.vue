@@ -29,6 +29,7 @@ watch(filter, () => {
 
 function filterInstalledProduct(installedProduct) {
     const date = installedProduct.date?.split('T')[0];
+    console.log(date)
     if (filter.seller && installedProduct.sold_product.sale.seller.name !== filter.seller) return false;
     if (filter.installer && installedProduct.installation.installer.name !== filter.installer) return false;
     if (filter.sale_start_date && installedProduct.sold_product.sale.date < filter.sale_start_date) return false;
