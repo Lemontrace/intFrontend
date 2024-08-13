@@ -23,6 +23,10 @@ const filter = reactive({
     only_completed: false,
 })
 
+watch(filter.install_end_date, () => {
+    console.log(filter.install_end_date)
+})
+
 function filterInstalledProduct(installedProduct) {
     if (filter.seller && installedProduct.sold_product.sale.seller.name !== filter.seller) return false;
     if (filter.installer && installedProduct.installation.installer.name !== filter.installer) return false;
