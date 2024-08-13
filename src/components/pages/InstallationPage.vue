@@ -34,8 +34,8 @@ function filterInstalledProduct(installedProduct) {
     if (filter.installer && installedProduct.installation.installer.name !== filter.installer) return false;
     if (filter.sale_start_date && saleDate < filter.sale_start_date) return false;
     if (filter.sale_end_date && saleDate > filter.sale_end_date) return false;
-    if (filter.install_start_date && installDate <= filter.install_start_date) return false;
-    if (filter.install_end_date && installDate >= filter.install_end_date) return false;
+    if (filter.install_start_date && installDate < filter.install_start_date) return false;
+    if (filter.install_end_date && installDate > filter.install_end_date) return false;
     if (filter.only_completed && installedProduct.status !== '완료') return false;
     return true;
 }
